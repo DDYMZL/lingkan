@@ -21,6 +21,12 @@ public record QuoteResult(
         BigDecimal amount,
         BigDecimal turnoverRate,
         BigDecimal totalMarketCap,
+        /** 振幅（%），数据源未提供时为 null */
+        BigDecimal amplitude,
+        /** 流通市值（元），数据源未提供时为 null */
+        BigDecimal circulatingMarketCap,
+        /** 市净率（倍），数据源未提供时为 null */
+        BigDecimal pb,
         LocalDateTime dataTime,
         LocalDateTime fetchTime
 ) {

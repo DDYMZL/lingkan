@@ -18,6 +18,12 @@ spring:
   threads:
     virtual:
       enabled: true
+  # 定时任务线程池：至少 2 个，避免每日同步与其他调度互相阻塞
+  task:
+    scheduling:
+      pool:
+        size: 4
+      thread-name-prefix: lingkan-sched-
   mvc:
     problemdetails:
       enabled: false
@@ -51,9 +57,53 @@ management:
       show-details: when_authorized
 
 lingkan:
-  # 第三方数据采集总开关。Phase 0/1 默认关闭，确认数据源方案后再开启。
+  # 第三方数据采集总开关（分钟级行情轮询）。全市场同步使用下面的 stock-sync 开关，两者独立。
   sync:
     enabled: false
+  # 全市场股票数据同步（股票清单 + 行情 + 全部启用指标绑定）
+  stock-sync:
+    # 定时任务开关。关闭后定时任务不执行，手动接口仍可用（便于排障）
+    enabled: true
+    # 每天凌晨 04:00（北京时间），不受服务器时区影响
+    cron: "0 0 4 * * ?"
+    timezone: Asia/Shanghai
+    # 股票基础信息批量入库条数
+    batch-size: 500
+    # 禁止每次启动自动执行 FULL（首次初始化请手动调用接口）
+    auto-initialize: false
+    # 股票清单取数：主源东方财富，失败时回退新浪（新浪不返回行业字段）
+    stock-list:
+      provider: eastmoney
+      fallback: sina
+      page-size: 100
+      max-pages: 120
+      request-interval-ms: 300
+      max-retries: 3
+      retry-interval-ms: 2000
+      min-stock-count: 3000
+      hosts: push2.eastmoney.com,82.push2.eastmoney.com,push2delay.eastmoney.com
+    # 行情同步（腾讯批量，GBK 解码）
+    quote:
+      enabled: true
+      provider: tencent
+      batch-size: 100
+      max-retries: 3
+      retry-interval-ms: 1000
+    # 东方财富指标同步：单股快照一次返回全部绑定指标，走有界并发
+    eastmoney:
+      enabled: true
+      concurrency: 6
+      request-interval-ms: 150
+      max-retries: 2
+      retry-interval-ms: 800
+    retry:
+      max-attempts: 3
+      initial-delay-ms: 1000
+      multiplier: 2
+    task:
+      # 任务锁超时（分钟），超时后允许新任务抢占，服务异常退出无需人工清锁
+      lock-timeout-minutes: 120
+      detail-log-enabled: true
   datasource:
     # 单用户配置维度，未登录时使用该用户标识（不做注册登录体系）
     default-user-id: local-user

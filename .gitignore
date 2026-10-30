@@ -28,6 +28,9 @@ docker/.env
 .DS_Store
 Thumbs.db
 
+# ---- 自动生成的代码文档 ----
+.code-docs/
+
 # ---- 日志与临时文件 ----
 *.log
 logs/

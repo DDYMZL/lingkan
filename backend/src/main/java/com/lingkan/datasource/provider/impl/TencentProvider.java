@@ -169,6 +169,10 @@ public class TencentProvider implements QuoteProvider {
                     DecimalUtils.of(f[38]),
                     // 总市值单位为亿元，统一换算为元
                     scale(DecimalUtils.of(f[45]), BigDecimal.valueOf(100000000)),
+                    // 43 振幅(%)、44 流通市值(亿)、46 市净率(倍)
+                    DecimalUtils.of(f[43]),
+                    scale(DecimalUtils.of(f[44]), BigDecimal.valueOf(100000000)),
+                    DecimalUtils.of(f[46]),
                     parseTime(f[30]),
                     LocalDateTime.now()
             ));

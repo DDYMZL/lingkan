@@ -154,6 +154,9 @@ public class SinaProvider implements QuoteProvider {
                     DecimalUtils.of(f[9]),
                     null,
                     null,
+                    null,
+                    null,
+                    null,
                     parseTime(f[30], f[31]),
                     LocalDateTime.now()
             ));
