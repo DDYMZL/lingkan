@@ -1,6 +1,8 @@
 package com.lingkan.metrics.service;
 
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
+import com.lingkan.calculation.DividendYieldCalculator;
+import com.lingkan.calculation.PeTtmCalculator;
 import com.lingkan.common.util.CalcVersion;
 import com.lingkan.common.util.DecimalUtils;
 import com.lingkan.datasource.provider.ProviderRegistry;
@@ -8,7 +10,9 @@ import com.lingkan.datasource.provider.ProviderResult;
 import com.lingkan.datasource.provider.StockDataProvider;
 import com.lingkan.datasource.provider.QuoteResult;
 import com.lingkan.dividend.entity.StockDividend;
+import com.lingkan.dividend.entity.StockShareEvent;
 import com.lingkan.dividend.mapper.StockDividendMapper;
+import com.lingkan.dividend.mapper.StockShareEventMapper;
 import com.lingkan.financial.entity.StockFinancial;
 import com.lingkan.financial.mapper.StockFinancialMapper;
 import com.lingkan.metrics.dto.MetricDefinitionDto;
@@ -40,7 +44,8 @@ import java.util.Map;
  * <p>取值优先级：
  * <ol>
  *   <li>指标公式未确认（PENDING）→ 直接返回 PENDING，不输出任何数值；</li>
- *   <li>计算类指标（PE-TTM、股息率 TTM 等）→ 由本服务按已确认公式计算；</li>
+ *   <li>计算类指标（PE-TTM、股息率 TTM 等）→ 委托 {@code com.lingkan.calculation}
+ *       包计算器按已确认公式计算（累计→单季换算、期号连续性、股本换算）；</li>
  *   <li>行情类指标 → 实时行情快照；</li>
  *   <li>其他 → stock_metric_values（按用户指定来源或绑定优先级）。</li>
  * </ol>
@@ -58,6 +63,7 @@ public class MetricValueService {
     private final MetricSourceBindingMapper bindingMapper;
     private final StockFinancialMapper financialMapper;
     private final StockDividendMapper dividendMapper;
+    private final StockShareEventMapper shareEventMapper;
     private final ProviderRegistry registry;
 
     public MetricValueService(MetricDefinitionService definitionService,
@@ -67,6 +73,7 @@ public class MetricValueService {
                               MetricSourceBindingMapper bindingMapper,
                               StockFinancialMapper financialMapper,
                               StockDividendMapper dividendMapper,
+                              StockShareEventMapper shareEventMapper,
                               ProviderRegistry registry) {
         this.definitionService = definitionService;
         this.preferenceService = preferenceService;
@@ -75,6 +82,7 @@ public class MetricValueService {
         this.bindingMapper = bindingMapper;
         this.financialMapper = financialMapper;
         this.dividendMapper = dividendMapper;
+        this.shareEventMapper = shareEventMapper;
         this.registry = registry;
     }
 
@@ -173,6 +181,10 @@ public class MetricValueService {
         };
     }
 
+    /**
+     * PE-TTM：委托 {@link PeTtmCalculator}（累计值→单季值换算 + 期号连续性校验）。
+     * 数据不足/不可计算时返回 missing 结果（而非 null），以便前端展示明确状态。
+     */
     private MetricValueDto peTtm(Stock stock, MetricDefinitionDto def, String unit, int precision,
                                  String name, QuoteResult quote) {
         BigDecimal marketCap = quote == null ? null : quote.totalMarketCap();
@@ -180,25 +192,30 @@ public class MetricValueService {
             return MetricValueDto.missing(def.metricCode(), name, unit, String.valueOf(precision),
                     "缺少总市值，无法计算 PE-TTM");
         }
-        BigDecimal profitTtm = sumParentNetProfitTtm(stock.getId());
-        if (profitTtm == null) {
+        // 8 条足够：TTM 最近 4 期 + 年报单季换算所需的上一报告期
+        List<StockFinancial> financials = financialMapper.selectList(
+                Wrappers.<StockFinancial>lambdaQuery()
+                        .eq(StockFinancial::getStockId, stock.getId())
+                        .orderByDesc(StockFinancial::getReportPeriod)
+                        .last("LIMIT 8"));
+        PeTtmCalculator.PeTtmResult r = PeTtmCalculator.calculate(marketCap, financials);
+        if (r.status() == PeTtmCalculator.PeStatus.N_A) {
             return MetricValueDto.missing(def.metricCode(), name, unit, String.valueOf(precision),
-                    "财务数据未采集，无法计算 PE-TTM");
+                    r.reason() == null ? "PE-TTM 不可计算" : r.reason());
         }
-        if (profitTtm.signum() == 0) {
-            return MetricValueDto.missing(def.metricCode(), name, unit, String.valueOf(precision),
-                    "归母净利润为 0，PE-TTM 不可计算");
-        }
-        BigDecimal pe = DecimalUtils.divide(marketCap, profitTtm);
-        String status = profitTtm.signum() < 0 ? "OK" : "OK";
-        String statusText = profitTtm.signum() < 0 ? "亏损（不参与低 PE 排名）" : null;
+        BigDecimal pe = DecimalUtils.round(r.pe(), precision);
+        String statusText = r.status() == PeTtmCalculator.PeStatus.LOSS
+                ? "亏损（不参与低 PE 排名）" : null;
         return new MetricValueDto(def.metricCode(), name, unit, precision,
-                pe == null ? null : DecimalUtils.round(pe, precision),
-                format(pe, precision), status, statusText,
+                pe, format(pe, precision), "OK", statusText,
                 "system_calc", "系统计算", LocalDate.now().atStartOfDay(), LocalDateTime.now(),
-                CalcVersion.PE_TTM_V1);
+                CalcVersion.PE_TTM_V2);
     }
 
+    /**
+     * 股息率 TTM：委托 {@link DividendYieldCalculator}
+     * （实施日期优先窗口 + 状态过滤 + dividend_id 去重 + 股本换算）。
+     */
     private MetricValueDto dividendYieldTtm(Stock stock, MetricDefinitionDto def, String unit,
                                             int precision, String name, QuoteResult quote) {
         BigDecimal price = quote == null ? null : quote.latestPrice();
@@ -206,61 +223,26 @@ public class MetricValueService {
             return MetricValueDto.missing(def.metricCode(), name, unit, String.valueOf(precision),
                     "缺少最新价，无法计算股息率");
         }
-        BigDecimal cashTtm = sumCashDividendTtm(stock.getId());
-        if (cashTtm == null) {
+        List<StockDividend> dividends = dividendMapper.selectList(
+                Wrappers.<StockDividend>lambdaQuery()
+                        .eq(StockDividend::getStockId, stock.getId()));
+        List<StockShareEvent> events = shareEventMapper.selectList(
+                Wrappers.<StockShareEvent>lambdaQuery()
+                        .eq(StockShareEvent::getStockId, stock.getId()));
+        DividendYieldCalculator.TtmResult ttm = DividendYieldCalculator
+                .ttmCashPerShare(dividends, events, LocalDate.now());
+        if (ttm == null) {
             return MetricValueDto.missing(def.metricCode(), name, unit, String.valueOf(precision),
-                    "分红数据未采集，无法计算股息率");
+                    dividends.isEmpty()
+                            ? "分红数据未采集，无法计算股息率"
+                            : "近一年无已实施分红，无法计算股息率");
         }
-        BigDecimal yield = DecimalUtils.percent(cashTtm, price);
+        BigDecimal yield = DecimalUtils.percent(ttm.cashPerShare(), price);
         return new MetricValueDto(def.metricCode(), name, unit, precision,
                 yield == null ? null : DecimalUtils.round(yield, precision),
                 format(yield, precision), "OK", null,
                 "system_calc", "系统计算", LocalDate.now().atStartOfDay(), LocalDateTime.now(),
-                CalcVersion.DIVIDEND_YIELD_TTM_V1);
-    }
-
-    /** 最近四个季度归母净利润之和；不足四个季度返回 null（不做过早估算） */
-    private BigDecimal sumParentNetProfitTtm(Long stockId) {
-        List<StockFinancial> financials = financialMapper.selectList(
-                Wrappers.<StockFinancial>lambdaQuery()
-                        .eq(StockFinancial::getStockId, stockId)
-                        .orderByDesc(StockFinancial::getReportPeriod)
-                        .last("LIMIT 4"));
-        if (financials.size() < 4) {
-            return null;
-        }
-        BigDecimal sum = BigDecimal.ZERO;
-        for (StockFinancial f : financials) {
-            if (f.getNetProfitParent() == null) {
-                return null;
-            }
-            sum = sum.add(f.getNetProfitParent());
-        }
-        return sum;
-    }
-
-    /** 过去 12 个月已实施的每股现金分红之和 */
-    private BigDecimal sumCashDividendTtm(Long stockId) {
-        LocalDate from = LocalDate.now().minusDays(365);
-        List<StockDividend> dividends = dividendMapper.selectList(
-                Wrappers.<StockDividend>lambdaQuery()
-                        .eq(StockDividend::getStockId, stockId)
-                        .ge(StockDividend::getExDividendDate, from));
-        if (dividends.isEmpty()) {
-            return null;
-        }
-        BigDecimal sum = BigDecimal.ZERO;
-        for (StockDividend d : dividends) {
-            if (d.getCashDividendPerShare() == null) {
-                continue;
-            }
-            String status = d.getPlanStatus();
-            if (status != null && (status.contains("预案") || status.contains("未实施"))) {
-                continue;
-            }
-            sum = sum.add(d.getCashDividendPerShare());
-        }
-        return sum;
+                CalcVersion.DIVIDEND_YIELD_TTM_V2);
     }
 
     private MetricValueDto fromQuote(Stock stock, MetricDefinitionDto def, QuoteResult quote,

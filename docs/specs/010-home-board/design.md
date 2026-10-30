@@ -98,17 +98,22 @@ adjusted = cash × Π(1 / (1 + bonus_ratio + transfer_ratio))   // BONUS/TRANSFE
 
 ```java
 // 目标股息率配置（application.yml，可扩展）：
-// stock.target-yields: 4.0,4.5,5.0,5.5,6.0,6.5,7.0,7.5,8.0
+// lingkan.board.target-yields: 4.0,4.5,5.0,5.5,6.0,6.5,7.0,7.5,8.0
 // 目标价格 = TTM每股现金分红 × 100 / 目标股息率（HALF_UP 2 位）
-// 输入无效（分红≤0 或 yield≤0）→ null
+// 输入无效（分红≤0 或 yield≤0）→ 该档 null（对外展示 --，禁止 0 冒充）
 ```
 
 目标价格依赖 TTM 每股分红（非行情），仅分红数据变化时重算；实现上按需惰性计算 + 短缓存。
 
+> 说明：配置键落地为 `lingkan.board.target-yields`（跟随项目 `lingkan.*` 配置惯例，
+> 经 `BoardProperties` 绑定；未配置时回退 4.0~8.0 九档）。
+
 ### 3.4 `PeTtmCalculator`
 
 ```java
-// TTM归母净利润 = 最近四个连续季度（report_period 倒序取 4，校验期号连续）net_profit_parent 之和
+// 数据源 PARENT_NETPROFIT 为报告期累计值，须先换算单季（禁止直接累加累计值）：
+//   Q1 → 本期值；H1 → 本期 − 同年Q1；Q3 → 本期 − 同年H1；年报 → 本期 − 同年Q3
+// TTM归母净利润 = 最近四个连续季度（report_period 倒序取 4，校验期号连续）单季值之和
 // PE TTM = 总市值 / TTM归母净利润
 // TTM>0 → 正常值；=0 或缺失 → null（--）；<0 → LOSS 状态（展示「亏损」）
 // 总市值取 QuoteResult.totalMarketCap（行情快照），行情变化即重算

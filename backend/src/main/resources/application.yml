@@ -113,6 +113,10 @@ lingkan:
     timezone: Asia/Shanghai
     # 相邻两次数据源请求的最小间隔（毫秒）
     request-interval-ms: 500
+  # 首页看板（目标价格档位等）
+  board:
+    # 目标股息率档位（%），对应看板 9 档目标价列
+    target-yields: 4.0,4.5,5.0,5.5,6.0,6.5,7.0,7.5,8.0
   datasource:
     # 单用户配置维度，未登录时使用该用户标识（不做注册登录体系）
     default-user-id: local-user

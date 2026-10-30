@@ -1,7 +1,7 @@
 # 010-首页自选看板与计算引擎 · 任务清单
 
 > 版本：v1.0　日期：2026-10-30
-> 状态：进行中（阶段二完成，阶段三开工）
+> 状态：进行中（阶段三完成，阶段四开工）
 
 ## 阶段一：现状分析（已完成）
 
@@ -26,12 +26,12 @@
 
 ## 阶段三：计算引擎
 
-- [ ] T3-01 ShareBasisAdjuster + 单元测试
-- [ ] T3-02 DividendYieldCalculator（派息日优先 + 股本换算）+ 单元测试
-- [ ] T3-03 TargetPriceCalculator（4%~8% 可配置）+ 单元测试
-- [ ] T3-04 PeTtmCalculator（亏损/零/缺失/期号连续性）+ 单元测试
-- [ ] T3-05 StockIndicatorService + BoardRowDto
-- [ ] T3-06 MetricValueService 重构为复用计算器（保持现有行为不变）
+- [x] T3-01 ShareBasisAdjuster + 单元测试
+- [x] T3-02 DividendYieldCalculator（派息日优先 + 股本换算）+ 单元测试
+- [x] T3-03 TargetPriceCalculator（4%~8% 可配置）+ 单元测试
+- [x] T3-04 PeTtmCalculator（亏损/零/缺失/期号连续性）+ 单元测试
+- [x] T3-05 StockIndicatorService + BoardRowDto
+- [x] T3-06 MetricValueService 重构为复用计算器（保持现有行为不变）
 
 ## 阶段四：后端接口
 

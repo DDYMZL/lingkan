@@ -4,6 +4,38 @@
 
 ---
 
+## [0.6.0] - 2026-10-30
+
+### 新增：计算引擎四件套（spec 010 阶段三）
+
+**计算器（`com.lingkan.calculation` 新包，纯静态、无 Spring 依赖）**
+- `ShareBasisAdjuster`：股本换算，`adjusted = cash × Π(1/(1+bonus+transfer)) × Π(1/split_ratio)`；事件窗口 `event_date >= 除息日`（含同日）；除息日缺失保守不折减
+- `DividendYieldCalculator`：股息率 TTM——窗口 [T-365,T] 按实施日期筛选（缺失时除息日兜底）、`DividendStatusRules` 过滤未实施、dividend_id 去重（优先保留有实施日期者）、逐笔股本换算后累加；`yieldPercent` = 每股分红×100/股价（HALF_UP 2 位）；无有效数据返回 null（禁止 0 冒充）
+- `TargetPriceCalculator`：目标价 = TTM 每股分红×100/目标收益率（HALF_UP 2 位）；档位可配置（`lingkan.board.target-yields`，经 `BoardProperties` 绑定，默认 4.0~8.0 九档）；无效输入该档为 null（键齐全）
+- `PeTtmCalculator`：累计值→单季值换算（Q1 直取 / H1−Q1 / Q3−H1 / 年报−Q3）+ 最近四期连续性校验；TTM>0 → NORMAL、<0 → LOSS（pe 为负值）、=0/缺失/不连续 → N_A（pe=null + reason）
+
+**聚合**
+- `StockIndicatorService` + `BoardRowDto`：看板行 = 行情快照 + 股息率 TTM + PE TTM + 9 档目标价（字段契约见 spec 010 §3.5；dataStatus NORMAL/STALE/SUSPENDED；LOSS 时 peTtm=null、peStatus=LOSS）
+
+**口径变更（重要：calculation_version 已提升）**
+- `pe_ttm` V1→V2：旧口径把最近 4 条累计值直接求和（TTM 严重高估且无连续性校验），新口径单季换算 + 连续性校验，`MetricValueService` 改用 `CalcVersion.PE_TTM_V2`
+- `dividend_yield_ttm` V1→V2：旧口径按除息日过滤、关键词手工匹配状态、无去重、无股本换算；新口径实施日期优先 + 状态规则类 + dividend_id 去重 + 股本换算，`MetricValueService` 改用 `CalcVersion.DIVIDEND_YIELD_TTM_V2`
+- 详情页/市场页展示行为不变（MISSING 语义、亏损状态文案、来源 system_calc 均保留）
+
+**测试**
+- `ShareBasisAdjusterTest` 11 用例（四类事件/叠加/同日/窗口/异常输入）
+- `DividendYieldCalculatorTest` 12 用例（6%/6.25%/5.45%、窗口边界、状态剔除、去重、10转10 → 1.5 元口径）
+- `TargetPriceCalculatorTest` 4 用例（75.00/60.00/50.00/42.86/37.50、无效输入、默认档位）
+- `PeTtmCalculatorTest` 11 用例（500亿/50亿=10、600亿→12、400亿→8、零→N_A、负→LOSS、不足四季/不连续/缺上期→N_A）
+- 后端全量 72 测试通过
+
+### 文档同步
+- `docs/specs/010-home-board/tasks.md`：T3-01~T3-06 标记完成，状态「阶段三完成，阶段四开工」
+- `docs/specs/010-home-board/design.md`：§3.3 配置键落地为 `lingkan.board.target-yields`（原 stock.target-yields）；§3.4 补充累计→单季换算公式
+- `.code-docs/`：新增 11 篇（4 计算器 + BoardProperties + StockIndicatorService + BoardRowDto + 4 测试文档）、更新 4 篇（MetricValueService/CalcVersion/application/DividendStatusRules）（不入库，见其 CHANGELOG）
+
+---
+
 ## [0.5.0] - 2026-10-30
 
 ### 新增：分红/财务同步服务与调度（spec 010 阶段二收尾）
