@@ -1,130 +1,102 @@
-<view class="page">
-
-  <!-- 顶部：品牌 + 交易时段 + 市场概览 -->
-  <view class="hero">
-    <view class="hero__row">
-      <view class="hero__brand">
-        <view class="hero__mark">玲</view>
-        <view class="hero__titles">
-          <view class="hero__name">玲看股息</view>
-          <view class="hero__tagline">股息率 · 多源交叉验证</view>
-        </view>
-      </view>
-      <view class="phase {{trading ? 'phase--live' : ''}}">
-        <view class="phase__dot"></view>
-        <text>{{phaseText}}</text>
-      </view>
+<view class="page home-page">
+  <view class="home-head">
+    <view class="home-head__titles">
+      <view class="home-head__title">我的自选</view>
+      <view class="home-head__time">行情时间 {{quoteTimeText}}</view>
     </view>
-
-    <view wx:if="{{market}}" class="hero__market">
-      <view class="mkrow">
-        <view class="mk">
-          <text class="mk__num up">{{market.upCount}}</text>
-          <text class="mk__label">上涨</text>
-        </view>
-        <view class="mk">
-          <text class="mk__num flat">{{market.flatCount}}</text>
-          <text class="mk__label">平盘</text>
-        </view>
-        <view class="mk">
-          <text class="mk__num down">{{market.downCount}}</text>
-          <text class="mk__label">下跌</text>
-        </view>
-        <view class="mk mk--right">
-          <text class="mk__num flat">{{market.totalCount}}</text>
-          <text class="mk__label">覆盖</text>
-        </view>
-      </view>
-      <view wx:if="{{marketBar}}" class="bar">
-        <view class="bar__seg bar__seg--up" style="width:{{marketBar.up}}%"></view>
-        <view class="bar__seg bar__seg--flat" style="width:{{marketBar.flat}}%"></view>
-        <view class="bar__seg bar__seg--down" style="width:{{marketBar.down}}%"></view>
-      </view>
-      <view class="hero__sync">行情更新：{{syncTimeText}}</view>
-    </view>
-
-    <view wx:else class="hero__market hero__market--empty">
-      <view class="hero__empty-title">暂无市场行情数据</view>
-      <view class="hero__empty-hint">按「不估算、不推测」原则，此处不展示任何补全数值</view>
+    <view class="home-head__actions">
+      <text class="head-action" bindtap="onRefreshQuotes">{{refreshingQuotes ? '提交中' : '刷新'}}</text>
+      <text class="head-action head-action--primary" bindtap="goSearch">添加股票</text>
     </view>
   </view>
 
-  <!-- 自选股 -->
-  <view class="section">
-    <view class="section__head">
-      <view class="section__title">
-        我的自选
-        <text class="section__count">{{total}}</text>
+  <view wx:if="{{rows.length}}" class="board-meta">
+    <text>{{count}} 只自选</text>
+    <view class="connection connection--{{connectionTone}}">
+      <view class="connection__dot"></view>
+      <text>{{connectionText}}</text>
+    </view>
+  </view>
+
+  <view wx:if="{{loading && !rows.length}}" class="card loading-wrap home-state">
+    <view class="spinner"></view>
+    <text>看板加载中…</text>
+  </view>
+
+  <view wx:elif="{{rows.length}}" class="board-shell">
+    <view class="board-head">
+      <view class="stock-cell board-cell board-cell--head">
+        <text>股票 / 代码</text>
       </view>
-      <view class="section__actions">
-        <text class="link" bindtap="onRefreshQuotes">刷新行情</text>
-        <text class="link" bindtap="goSearch">添加</text>
-      </view>
+      <scroll-view
+        class="board-head-scroll"
+        scroll-x
+        scroll-left="{{headerScrollLeft}}"
+        show-scrollbar="{{false}}"
+      >
+        <view class="metrics-row metrics-row--head">
+          <view class="metric-cell metric-cell--price board-cell--head">现价</view>
+          <view class="metric-cell metric-cell--change board-cell--head">涨跌幅</view>
+          <view class="metric-cell metric-cell--yield board-cell--head">股息率 TTM</view>
+          <view class="metric-cell metric-cell--pe board-cell--head">PE TTM</view>
+          <view
+            wx:for="{{targetColumns}}"
+            wx:key="key"
+            class="metric-cell metric-cell--target board-cell--head"
+          >{{item.label}}目标价</view>
+        </view>
+      </scroll-view>
     </view>
 
-    <view wx:if="{{loading}}" class="card loading-wrap">
-      <view class="spinner"></view>
-      <text>加载中…</text>
-    </view>
-
-    <block wx:elif="{{rows.length}}">
-      <view class="card card--tight stock-list">
-        <view
-          wx:for="{{rows}}"
-          wx:key="code"
-          class="stock"
-          hover-class="stock--hover"
-          hover-stay-time="60"
-          data-code="{{item.code}}"
-          bindtap="goDetail"
-        >
-          <view class="stock__main">
-            <view class="stock__head">
-              <text class="stock__name ellipsis">{{item.name}}</text>
-              <text wx:if="{{item.st}}" class="tag tag--danger">ST</text>
+    <scroll-view
+      class="board-body"
+      scroll-x
+      scroll-y
+      enhanced
+      show-scrollbar="{{false}}"
+      bindscroll="onBoardScroll"
+    >
+      <view class="board-content">
+        <view wx:for="{{rows}}" wx:for-item="row" wx:key="code" class="board-row">
+          <view class="stock-cell stock-cell--body" data-code="{{row.code}}" bindtap="goDetail">
+            <view class="stock-cell__name ellipsis">{{row.name}}</view>
+            <view class="stock-cell__meta">
+              <text>{{row.code}}</text>
+              <text wx:if="{{row.exchange}}"> · {{row.exchange}}</text>
             </view>
-            <view class="stock__meta t-hint">
-              <text>{{item.code}}</text>
-              <text wx:if="{{item.exchange}}"> · {{item.exchange}}</text>
-              <text wx:if="{{item.industry}}"> · {{item.industry}}</text>
-            </view>
-            <view class="metric-cells">
-              <view wx:for="{{item.cells}}" wx:for-item="cell" wx:key="code" class="metric-cell">
-                <text>{{cell.label}}</text>
-                <text class="metric-cell__value {{cell.pending ? 'metric-cell__value--pending' : ''}}">{{cell.value}}{{cell.unit}}</text>
-              </view>
-            </view>
+            <text wx:if="{{row.statusText}}" class="stock-cell__status">{{row.statusText}}</text>
           </view>
-          <view class="stock__price">
-            <text class="stock__price-num t-num {{item.tone}}">{{item.price}}</text>
-            <text class="stock__price-chg t-num {{item.tone}}">{{item.changeText}}</text>
-            <text wx:if="{{item.dataTimeText}}" class="stock__time">{{item.dataTimeText}}</text>
+          <view class="metrics-row metrics-row--body">
+            <view class="metric-cell metric-cell--price t-num {{row.tone}}">{{row.priceText}}</view>
+            <view class="metric-cell metric-cell--change t-num {{row.tone}}">{{row.changeText}}</view>
+            <view class="metric-cell metric-cell--yield metric-cell--emphasis t-num">{{row.yieldText}}</view>
+            <view class="metric-cell metric-cell--pe t-num {{row.peLoss ? 'down' : ''}}">{{row.peText}}</view>
+            <view
+              wx:for="{{row.targets}}"
+              wx:for-item="target"
+              wx:key="key"
+              class="metric-cell metric-cell--target t-num {{target.reached ? 'metric-cell--reached' : ''}}"
+            >{{target.text}}</view>
           </view>
         </view>
       </view>
-      <view wx:if="{{columnHint}}" class="column-hint">{{columnHint}}</view>
-    </block>
-
-    <view wx:else class="card">
-      <empty-state
-        icon="⭐"
-        text="还没有自选股"
-        hint="添加后可在首页一眼看到已配置的指标，比如股息率、PE、60日新低"
-        action-text="去搜索添加"
-        bind:action="goSearch"
-      />
-    </view>
+    </scroll-view>
+    <view class="board-foot">左右滑动查看九档目标价 · 红色底纹表示现价已达目标 · -- 表示数据缺失</view>
   </view>
 
-  <!-- 全市场入口 -->
-  <view class="section">
-    <view class="entry" bindtap="goRanking" hover-class="entry--hover">
-      <view class="col flex-1">
-        <view class="t-section">全市场筛选</view>
-        <view class="t-hint">按任意已配置指标排序、筛选</view>
-      </view>
-      <text class="entry__arrow">›</text>
-    </view>
+  <view wx:elif="{{loadFailed}}" class="card home-state load-failed">
+    <view class="t-section">看板暂时无法加载</view>
+    <view class="t-hint load-failed__hint">请检查后端服务与网络连接，已有数据不会被空值覆盖。</view>
+    <button class="btn btn--primary btn--sm" bindtap="retryLoad">重新加载</button>
   </view>
 
+  <view wx:else class="card home-state">
+    <empty-state
+      icon="+"
+      text="还没有自选股"
+      hint="搜索并添加 A 股后，可在这里查看实时股息率、PE 与九档目标价"
+      action-text="添加股票"
+      bind:action="goSearch"
+    />
+  </view>
 </view>

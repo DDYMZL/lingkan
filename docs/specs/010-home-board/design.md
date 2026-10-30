@@ -216,8 +216,8 @@ pages/home/index.wxml
     现价 | 涨跌幅 | 现股息率 | PE TTM | 4% | 4.5% | ... | 8%（9 档目标价）
 ```
 
-- 纵向滚动：外层 scroll-view（首列与右侧同步 scroll-top），表头 fixed 在滚动区外。
-- 横向滚动冲突：优先「首列固定 + 右侧 scroll-x」单层方案；若原生组件兼容性出问题，按方案 2.3 退化为双层同步滚动。
+- 纵向滚动：表头位于表体滚动区外；表体使用 `scroll-view scroll-x scroll-y`，首列通过 `position: sticky; left: 0` 固定。
+- 横向同步：表头独立 `scroll-x`，表体 `bindscroll` 将 `scrollLeft` 写入表头 `scroll-left`；50 行只维护一个横向表体，避免逐行滚动容器。
 - 颜色：涨红跌绿（沿用规范）；股息率统一强调色；目标价格达标（现价 ≤ 目标价）高亮该格；PE 亏损显示「亏损」、缺失显示 `--`。
 - 每行独立 `setData`（`stock[{{index}}].price` 路径），WS 推送只更新变化行，不整页重渲染。
 
