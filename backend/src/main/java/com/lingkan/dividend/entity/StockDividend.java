@@ -24,11 +24,15 @@ public class StockDividend {
 
     private Long stockId;
     private String fiscalYear;
+    /** 分红方案唯一标识（数据源口径），用于去重 */
+    private String dividendId;
     private BigDecimal cashDividendPerShare;
     private LocalDate announcementDate;
     private LocalDate recordDate;
     private LocalDate exDividendDate;
     private LocalDate paymentDate;
+    /** 实际派息实施日期（TTM 窗口优先按此日期筛选，缺失时用除息日兜底） */
+    private LocalDate implementationDate;
     private String planStatus;
     private String sourceCode;
     private LocalDateTime createdAt;

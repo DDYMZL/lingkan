@@ -4,6 +4,32 @@
 
 ---
 
+## [0.4.0] - 2026-10-30
+
+### 新增：首页自选看板与计算引擎（开发中）
+
+**Spec**
+- `docs/specs/010-home-board/`：依据用户技术方案 V1.0 落成四件套（spec/design/tasks/acceptance），含 4 项用户裁决（横向滚动表格、移除首页市场概览、TTM 派息日优先、第一版股本换算）
+- `docs/specs/009-stock-sync/`：补记全市场股票同步系统 Spec（与已实现代码一致）
+
+**数据库（V5 迁移）**
+- `stock_dividends` 新增 `dividend_id`（分红方案唯一标识）、`implementation_date`（实际派息实施日期）及索引
+- 新建 `stock_share_events` 股本变动事件表（送股/转增/拆股/并股），支撑历史分红换算当前股本口径
+- `metric_definitions.dividend_yield_ttm` 口径说明补充 TTM 窗口与股本换算规则
+
+**修复**
+- `DecimalUtilsTest` 精度断言改为数值相等（compareTo），不再断言标度相等（尾零位数随 MathContext(16) 运算自然变化）
+
+**其他**
+- `.gitignore` 新增 `.code-docs/`（自动生成的代码文档，不入库）
+- 全市场股票同步系统提交入库（feat(sync)）
+
+### 文档同步
+- `docs/specs/010-home-board/*` → v1.0（approved）
+- `docs/specs/009-stock-sync/*` → v1.0
+
+---
+
 ## [0.3.0] - 2026-10-30
 
 ### 新增：Git 版本控制与 GitHub 关联
