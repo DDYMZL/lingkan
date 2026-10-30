@@ -38,6 +38,9 @@ import java.util.List;
  *   <li>{@code BASIC_EPS}：基本每股收益；{@code WEIGHTAVG_ROE}：加权 ROE（%）；</li>
  *   <li>{@code NOTICE_DATE}：披露日期；{@code REPORTDATE}：报告期截止日。</li>
  * </ul>
+ *
+ * <p>返回语义：接口失败（非 200 / 网络 / 解析异常）返回 null（MISSING），
+ * 成功但无记录返回空列表，与 {@link FinancialProvider} 契约一致。
  */
 @Component
 public class EastMoneyFinancialProvider implements FinancialProvider {
@@ -73,12 +76,12 @@ public class EastMoneyFinancialProvider implements FinancialProvider {
             HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
             if (response.statusCode() != 200) {
                 log.warn("东财财报接口返回状态码 {}", response.statusCode());
-                return List.of();
+                return null;
             }
             return parse(stockCode, response.body());
         } catch (Exception ex) {
             log.warn("东财财报接口请求失败 {}: {}", stockCode, ex.getMessage());
-            return List.of();
+            return null;
         }
     }
 

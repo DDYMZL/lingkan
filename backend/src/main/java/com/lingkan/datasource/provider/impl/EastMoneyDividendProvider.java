@@ -39,6 +39,9 @@ import java.util.List;
  *       TTM 窗口由计算引擎按除息日兜底（见 spec 010 §3.1）；</li>
  *   <li>{@code REPORT_DATE}：分红归属年度报告期。</li>
  * </ul>
+ *
+ * <p>返回语义：接口失败（非 200 / 网络 / 解析异常）返回 null（MISSING），
+ * 成功但无记录返回空列表，与 {@link DividendProvider} 契约一致。
  */
 @Component
 public class EastMoneyDividendProvider implements DividendProvider {
@@ -75,12 +78,12 @@ public class EastMoneyDividendProvider implements DividendProvider {
             HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
             if (response.statusCode() != 200) {
                 log.warn("东财分红接口返回状态码 {}", response.statusCode());
-                return List.of();
+                return null;
             }
             return parse(stockCode, response.body());
         } catch (Exception ex) {
             log.warn("东财分红接口请求失败 {}: {}", stockCode, ex.getMessage());
-            return List.of();
+            return null;
         }
     }
 

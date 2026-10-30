@@ -4,6 +4,33 @@
 
 ---
 
+## [0.5.0] - 2026-10-30
+
+### 新增：分红/财务同步服务与调度（spec 010 阶段二收尾）
+
+**同步服务 `DividendFinancialSyncService`**
+- 三种触发：每日 05:30 定时（`DividendFinancialSyncScheduler`，自选股增量）、添加自选成功后异步即时同步（`WatchlistService.add` → `syncAsync`，触发方式 `WATCHLIST_ADD`）、手动接口 `POST /api/v1/sync/dividend-financial`（缺省 stockCodes 同步全部自选股，异步返回 `SyncAcceptVo{jobId,accepted,count,message}`）
+- 分红三级匹配去重：`dividend_id` → 「归属年度+除息日」→ 「归属年度+公告日」，支持预案→实施的方案演进原地更新；`implementation_date` 同步永不覆盖（保留人工/兜底值）
+- 股本事件（`stock_share_events`）：仅对「已实施 + 除息日存在 + 比例 > 0」的方案生成 BONUS/TRANSFER 事件（口径类 `calculation.DividendStatusRules`）
+- 财报按「报告期 + source_code」upsert，值未变不写库（BigDecimal 按 compareTo 判等，忽略标度）
+- `data_sync_logs` 留痕（`sync_type = DIVIDEND / FINANCIAL`，RUNNING→SUCCESS/PARTIAL/FAILED）；批次互斥（AtomicBoolean），被拒提交返回 accepted=false
+- 配置 `lingkan.dividend-financial-sync.*`（enabled/cron 05:30/timezone/request-interval-ms 500）
+
+**数据源契约变更（MISSING 语义）**
+- `DividendProvider`/`FinancialProvider` 契约由「失败或无记录返回空列表」改为「失败返回 null（MISSING）、成功但无记录返回空列表」；东财两个适配器同步修改（非 200/网络/解析异常 → null）
+- 同步服务以 null 判定取数失败（计入失败数、保留旧数据），以空列表判定成功无数据
+
+**测试**
+- `DividendStatusRulesTest`：已实施/预案/不实施/状态缺失 4 用例
+- `DividendFinancialSyncServiceTest`（Mockito）：取数失败不写库、送转事件生成条件、预案→实施原地更新且不覆盖 implementation_date、重复同步不写库、财报 upsert 值未变不更新等 7 用例
+
+### 文档同步
+- `docs/specs/010-home-board/tasks.md`：T2-01~T2-08、T4-02、T4-03 标记完成
+- `docs/specs/010-home-board/design.md`：§4.3 去重规则细化为三级匹配
+- `.code-docs/`：新增 9 篇、更新 6 篇（不入库，见其 CHANGELOG）
+
+---
+
 ## [0.4.0] - 2026-10-30
 
 ### 新增：首页自选看板与计算引擎（开发中）
@@ -16,6 +43,10 @@
 - `stock_dividends` 新增 `dividend_id`（分红方案唯一标识）、`implementation_date`（实际派息实施日期）及索引
 - 新建 `stock_share_events` 股本变动事件表（送股/转增/拆股/并股），支撑历史分红换算当前股本口径
 - `metric_definitions.dividend_yield_ttm` 口径说明补充 TTM 窗口与股本换算规则
+
+**数据源适配器（实测验证字段）**
+- `EastMoneyDividendProvider`：RPT_SHAREBONUS_DET 解析（每 10 股→每股、送转比例、dividend_id 锚定）；实测无派息日字段（payment/implementation 恒 null，TTM 按除息日兜底）
+- `EastMoneyFinancialProvider`：RPT_LICO_FN_CPD 解析（QDATE 报告期、DATEMMDD 类型映射、累计值警示）
 
 **修复**
 - `DecimalUtilsTest` 精度断言改为数值相等（compareTo），不再断言标度相等（尾零位数随 MathContext(16) 运算自然变化）

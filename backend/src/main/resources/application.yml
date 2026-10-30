@@ -104,6 +104,15 @@ lingkan:
       # 任务锁超时（分钟），超时后允许新任务抢占，服务异常退出无需人工清锁
       lock-timeout-minutes: 120
       detail-log-enabled: true
+  # 分红/财务同步（自选股分红方案 + 财报，支撑首页看板股息率 TTM 与 PE TTM）
+  dividend-financial-sync:
+    # 定时任务开关。关闭后定时任务不执行，手动接口与添加自选触发仍可用
+    enabled: true
+    # 每天凌晨 05:30（北京时间），不受服务器时区影响
+    cron: "0 30 5 * * ?"
+    timezone: Asia/Shanghai
+    # 相邻两次数据源请求的最小间隔（毫秒）
+    request-interval-ms: 500
   datasource:
     # 单用户配置维度，未登录时使用该用户标识（不做注册登录体系）
     default-user-id: local-user

@@ -1,7 +1,7 @@
 # 010-首页自选看板与计算引擎 · 任务清单
 
 > 版本：v1.0　日期：2026-10-30
-> 状态：pending（待 Spec 确认后开工）
+> 状态：进行中（阶段二完成，阶段三开工）
 
 ## 阶段一：现状分析（已完成）
 
@@ -15,14 +15,14 @@
 
 ## 阶段二：数据库与数据采集
 
-- [ ] T2-01 V5 迁移：stock_dividends 加 dividend_id/implementation_date + 索引；新建 stock_share_events；修正 dividend_yield_ttm 口径说明
-- [ ] T2-02 实体/Mapper 同步：StockDividend、StockShareEvent（新）
-- [ ] T2-03 真实请求验证东财分红接口 RPT_SHAREBONUS_DET 字段（记录到 source-research.md 附录）
-- [ ] T2-04 真实请求验证东财财报接口 RPT_LICO_FN_CPD 字段
-- [ ] T2-05 EastMoneyDividendProvider（含送转事件提取）
-- [ ] T2-06 EastMoneyFinancialProvider
-- [ ] T2-07 DividendFinancialSyncService（自选增量 + 添加自选触发 + 手动接口）
-- [ ] T2-08 分红/财务同步单元测试（样本报文解析 + 去重 + 状态识别）
+- [x] T2-01 V5 迁移：stock_dividends 加 dividend_id/implementation_date + 索引；新建 stock_share_events；修正 dividend_yield_ttm 口径说明
+- [x] T2-02 实体/Mapper 同步：StockDividend、StockShareEvent（新）
+- [x] T2-03 真实请求验证东财分红接口 RPT_SHAREBONUS_DET 字段（记录到 source-research.md 附录）
+- [x] T2-04 真实请求验证东财财报接口 RPT_LICO_FN_CPD 字段
+- [x] T2-05 EastMoneyDividendProvider（含送转事件提取）
+- [x] T2-06 EastMoneyFinancialProvider
+- [x] T2-07 DividendFinancialSyncService（自选增量 + 添加自选触发 + 手动接口）
+- [x] T2-08 分红/财务同步单元测试（样本报文解析 + 去重 + 状态识别）
 
 ## 阶段三：计算引擎
 
@@ -36,8 +36,8 @@
 ## 阶段四：后端接口
 
 - [ ] T4-01 GET /api/v1/watchlist/board 看板聚合接口
-- [ ] T4-02 POST /api/v1/sync/dividend-financial 手动同步接口
-- [ ] T4-03 添加自选后异步触发分红/财务即时同步（WatchlistService 联动）
+- [x] T4-02 POST /api/v1/sync/dividend-financial 手动同步接口
+- [x] T4-03 添加自选后异步触发分红/财务即时同步（WatchlistService 联动）
 - [ ] T4-04 分红接口返回补充 dividend_id/implementation_date
 
 ## 阶段五：行情刷新

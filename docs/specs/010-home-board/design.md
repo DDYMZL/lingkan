@@ -150,7 +150,9 @@ record BoardRowDto(String stockCode, String stockName, String exchange,
 
 - 范围（Q10-1 建议）：自选股 + 详情页访问过的股票（`stock_dividends`/`stock_financials` 为空时惰性补同步）。
 - 触发：每日 05:30 定时（自选股增量）；添加自选成功后异步即时同步；手动接口 `/api/v1/sync/dividend-financial`。
-- 去重：`dividend_id` 或 `(stock_id, fiscal_year, ex_dividend_date, source_code)` 先查后插；财务按 `(stock_id, report_period, source_code)`。
+- 去重：分红按 `dividend_id` 三级匹配——① `dividend_id`；②「归属年度 + 除息日」；③「归属年度 + 公告日」兜底（预案→实施演进时除息日从无到有、`dividend_id` 锚点变化，仍匹配原记录原地更新）；财务按 `(stock_id, report_period, source_code)`。
+- 股本事件：仅对「已实施（`DividendStatusRules`）+ 除息日存在 + 比例 > 0」的方案生成 BONUS/TRANSFER 事件。
+- 数据源失败语义：Provider 失败返回 null（MISSING），同步服务据此计失败并保留旧数据；成功无记录返回空列表。
 - 写 `data_sync_logs`（`sync_type = DIVIDEND / FINANCIAL`）。
 
 ## 五、行情轮询与 WebSocket

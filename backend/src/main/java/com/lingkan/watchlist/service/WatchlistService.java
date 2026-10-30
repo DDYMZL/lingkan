@@ -10,6 +10,7 @@ import com.lingkan.stock.dto.StockRowDto;
 import com.lingkan.stock.entity.Stock;
 import com.lingkan.stock.mapper.StockMapper;
 import com.lingkan.stock.service.StockService;
+import com.lingkan.sync.service.DividendFinancialSyncService;
 import com.lingkan.watchlist.entity.UserWatchlist;
 import com.lingkan.watchlist.mapper.UserWatchlistMapper;
 import org.springframework.stereotype.Service;
@@ -31,13 +32,16 @@ public class WatchlistService {
     private final StockMapper stockMapper;
     private final StockService stockService;
     private final MetricValueService metricValueService;
+    private final DividendFinancialSyncService dividendFinancialSyncService;
 
     public WatchlistService(UserWatchlistMapper watchlistMapper, StockMapper stockMapper,
-                            StockService stockService, MetricValueService metricValueService) {
+                            StockService stockService, MetricValueService metricValueService,
+                            DividendFinancialSyncService dividendFinancialSyncService) {
         this.watchlistMapper = watchlistMapper;
         this.stockMapper = stockMapper;
         this.stockService = stockService;
         this.metricValueService = metricValueService;
+        this.dividendFinancialSyncService = dividendFinancialSyncService;
     }
 
     public PageResult<StockRowDto> list(String userId, int page, int size) {
@@ -97,6 +101,8 @@ public class WatchlistService {
         entity.setRemark(remark);
         entity.setCreatedAt(LocalDateTime.now());
         watchlistMapper.insert(entity);
+        // 添加自选成功后异步即时同步分红/财报（spec 010 §4.3）；失败不影响添加结果
+        dividendFinancialSyncService.syncAsync(List.of(stockCode), "WATCHLIST_ADD");
     }
 
     @Transactional
