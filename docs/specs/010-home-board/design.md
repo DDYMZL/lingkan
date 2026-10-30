@@ -165,20 +165,23 @@ record BoardRowDto(String stockCode, String stockName, String exchange,
 ### 5.1 轮询（改造 `QuoteSyncScheduler`）
 
 ```yaml
-stock:
-  quote:
-    enabled: true            # 复用 lingkan.sync.enabled 语义
-    interval-seconds: 15
-    market-hours-only: true  # 09:30-11:30 / 13:00-15:00
-    batch-size: 100
-    cache-ttl-seconds: 60
+lingkan:
+  sync:
+    enabled: false                # 部署确认后显式开启
+    quote-interval-ms: 15000      # fixedDelay，上次结束后 15 秒再执行
+    initial-delay-ms: 30000
+    market-hours-only: true       # 工作日 09:30-11:30 / 13:00-15:00
+    quote-batch-size: 100
+    quote-cache-ttl-seconds: 60
+    quote-stale-after-seconds: 90
     websocket-enabled: true
 ```
 
-- 轮询范围：全量自选股（当前单用户，未来多用户取并集）。
-- 结果进 Caffeine 缓存（`QuoteSnapshotService` 现有 20s 缓存调整为共享语义）→ 仅价格变化时落库 `stock_quotes`（避免 15s 高频写库，沿用现有唯一约束更新行）→ 触发 WebSocket 推送。
-- 非交易时段：停止高频轮询，保留最后有效行情，首页标注行情时间。
-- 行情接口失败：保留最近有效行情，`dataStatus = STALE`。
+- 轮询范围：所有用户自选股并集，按代码排序后分批；空自选不请求上游。
+- `QuoteSnapshotService` 缓存改为按股票代码共享：调度 `refreshQuotes` 绕过新鲜缓存并写入，HTTP `getQuotes` 优先复用；仅价格变化时落库 `stock_quotes`，只推送价格变化行。
+- 非交易时段：调度短路，不请求上游，保留最后有效行情，首页标注行情时间。
+- 行情接口失败：逐源异常隔离并回退；仍无结果时读取 `stock_quotes` 最近快照，不写入新鲜缓存，`fetchTime` 超过阈值后 `dataStatus = STALE`。
+- 法定节假日暂未单独维护；当前交易时段判断覆盖周末与每日开闭市边界。
 
 ### 5.2 WebSocket（新增依赖 `spring-boot-starter-websocket`）
 

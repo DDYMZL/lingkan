@@ -77,6 +77,19 @@ public class WatchlistService {
         return BoardResponse.of(stockIndicatorService.resolveAll(stocks));
     }
 
+    /** 行情调度范围：所有用户自选股票并集，按代码排序保证批次稳定。 */
+    public List<Stock> listAllFavoriteStocks() {
+        List<UserWatchlist> items = watchlistMapper.selectList(null);
+        if (items.isEmpty()) {
+            return List.of();
+        }
+        List<Long> stockIds = items.stream().map(UserWatchlist::getStockId).distinct().toList();
+        List<Stock> stocks = new ArrayList<>(stockMapper.selectList(
+                Wrappers.<Stock>lambdaQuery().in(Stock::getId, stockIds)));
+        stocks.sort(Comparator.comparing(Stock::getStockCode));
+        return stocks;
+    }
+
     /** 按 sortOrder 返回有效自选股票；已删除的股票静默跳过。 */
     private List<Stock> listStocks(String userId) {
         List<UserWatchlist> items = watchlistMapper.selectList(

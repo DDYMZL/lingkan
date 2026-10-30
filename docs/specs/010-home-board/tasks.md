@@ -1,7 +1,7 @@
 # 010-首页自选看板与计算引擎 · 任务清单
 
 > 版本：v1.0　日期：2026-10-31
-> 状态：进行中（阶段四完成，阶段五开工）
+> 状态：进行中（阶段五完成，阶段六开工）
 
 ## 阶段一：现状分析（已完成）
 
@@ -42,11 +42,11 @@
 
 ## 阶段五：行情刷新
 
-- [ ] T5-01 QuoteSyncScheduler 实现 15s 轮询（仅交易时段、可配置、批量、共享缓存）
-- [ ] T5-02 轮询结果 → Caffeine 缓存 → 变化才落库 → 触发计算 + 推送
-- [ ] T5-03 新增 websocket starter 依赖 + WebSocketConfig
-- [ ] T5-04 QuotePushService：/ws/stocks/favorites，STOCK_QUOTE_UPDATE 消息（含重算的股息率/PE）
-- [ ] T5-05 非交易时段/接口失败降级（保留最后行情、标记 STALE）
+- [x] T5-01 QuoteSyncScheduler 实现 15s 轮询（仅交易时段、可配置、批量、共享缓存）
+- [x] T5-02 轮询结果 → Caffeine 缓存 → 变化才落库 → 触发计算 + 推送
+- [x] T5-03 新增 websocket starter 依赖 + WebSocketConfig
+- [x] T5-04 QuotePushService：/ws/stocks/favorites，STOCK_QUOTE_UPDATE 消息（含重算的股息率/PE）
+- [x] T5-05 非交易时段/接口失败降级（保留最后行情、标记 STALE）
 
 ## 阶段六：小程序首页
 

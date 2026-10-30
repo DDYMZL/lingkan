@@ -77,8 +77,17 @@ public class StockIndicatorService {
         return rows;
     }
 
-    /** 单只聚合；quote 可预先从批量请求传入 */
+    /** 单只完整聚合；quote 可预先从批量请求传入。 */
     public BoardRowDto resolve(Stock stock, QuoteResult quote) {
+        return resolveInternal(stock, quote, true);
+    }
+
+    /** 行情推送聚合：重算股息率与 PE，不重复计算不随行情变化的目标价。 */
+    public BoardRowDto resolveQuoteUpdate(Stock stock, QuoteResult quote) {
+        return resolveInternal(stock, quote, false);
+    }
+
+    private BoardRowDto resolveInternal(Stock stock, QuoteResult quote, boolean includeTargetPrices) {
         List<StockDividend> dividends = dividendMapper.selectList(
                 Wrappers.<StockDividend>lambdaQuery()
                         .eq(StockDividend::getStockId, stock.getId()));
@@ -113,7 +122,7 @@ public class StockIndicatorService {
                         quote == null ? null : quote.latestPrice()),
                 PeTtmCalculator.PeStatus.LOSS == pe.status() ? null : round2(pe.pe()),
                 pe.status().name(),
-                TargetPriceCalculator.calculate(cashTtm, targetYields()),
+                includeTargetPrices ? TargetPriceCalculator.calculate(cashTtm, targetYields()) : null,
                 quote == null ? null : quote.dataTime(),
                 ttm == null ? null : ttm.dataTime(),
                 latestPublishDate(financials),
@@ -136,7 +145,7 @@ public class StockIndicatorService {
     }
 
     private String dataStatus(QuoteResult quote) {
-        if (quote == null) {
+        if (quote == null || quoteService.isStale(quote)) {
             return DATA_STALE;
         }
         return quote.latestPrice() == null ? DATA_SUSPENDED : DATA_NORMAL;

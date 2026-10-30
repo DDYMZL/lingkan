@@ -57,9 +57,21 @@ management:
       show-details: when_authorized
 
 lingkan:
-  # 第三方数据采集总开关（分钟级行情轮询）。全市场同步使用下面的 stock-sync 开关，两者独立。
+  # 自选股行情轮询（全市场同步使用下面的 stock-sync 开关，两者独立）
   sync:
+    # 默认关闭；部署确认后开启。手动刷新接口不受此开关影响
     enabled: false
+    # 调度发起间隔 15 秒，首次延迟 30 秒
+    quote-interval-ms: 15000
+    initial-delay-ms: 30000
+    # 仅工作日 09:30-11:30 / 13:00-15:00 发起上游请求（法定节假日暂未单独维护）
+    market-hours-only: true
+    # 单次批量请求、按代码共享缓存与过期判定
+    quote-batch-size: 100
+    quote-cache-ttl-seconds: 60
+    quote-stale-after-seconds: 90
+    # 单实例 WebSocket /ws/stocks/favorites
+    websocket-enabled: true
   # 全市场股票数据同步（股票清单 + 行情 + 全部启用指标绑定）
   stock-sync:
     # 定时任务开关。关闭后定时任务不执行，手动接口仍可用（便于排障）

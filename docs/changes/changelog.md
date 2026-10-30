@@ -4,6 +4,29 @@
 
 ---
 
+## [0.8.0] - 2026-10-31
+
+### 新增：自选行情 15 秒轮询与 WebSocket 推送（spec 010 阶段五）
+
+- `QuoteSyncScheduler` 从日志骨架落地为真实调度：默认 15 秒 fixedDelay、30 秒首次延迟、所有用户自选并集、按代码排序和 100 只分批；总开关默认仍为 false，仅工作日交易时段请求上游。
+- `QuoteSnapshotService` 改为按股票代码共享 Caffeine 缓存（TTL 60 秒）：调度 `refreshQuotes` 强制刷新，HTTP `getQuotes` 优先复用；新增 `persistChanged`，BigDecimal 按数值判等，相同现价不写库。
+- 上游逐源异常隔离；全部无结果时读取 `stock_quotes` 最近快照，不用空值覆盖旧行情。兜底不写新鲜缓存，采集时间超过 90 秒后由看板标记 `STALE`。
+- 新增 `spring-boot-starter-websocket`、`WebSocketConfig` 与 `QuotePushService`，端点 `/ws/stocks/favorites`；单实例会话管理，发送失败清理，不阻塞 HTTP 看板。
+- 仅价格变化行触发 `resolveQuoteUpdate` 重算股息率 TTM 与 PE TTM；`STOCK_QUOTE_UPDATE` 负载不含九档目标价，目标价仍由 board 快照提供。
+- 新增 `QuoteSyncProperties`、`TradingSessionChecker`；法定节假日暂未单独维护。
+
+### 测试
+
+- 新增 9 个测试：共享缓存/强制刷新、持久化兜底/STALE、相同现价跳过写库、交易时段边界、非交易短路、分批与仅变化推送、WebSocket 消息不含目标价。
+- 后端全量 83 测试通过。
+
+### 文档同步
+
+- `docs/specs/010-home-board/{design,tasks}.md`：阶段五完成，配置键与降级语义按实现更新，状态「阶段五完成，阶段六开工」。
+- `.code-docs/`：新增 9 篇，更新 QuoteSnapshotService、QuoteSyncScheduler、StockIndicatorService、WatchlistService、application、pom 6 篇（不入库，见其 CHANGELOG）。
+
+---
+
 ## [0.7.0] - 2026-10-31
 
 ### 新增：首页自选看板聚合接口（spec 010 阶段四）
