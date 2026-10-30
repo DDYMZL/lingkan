@@ -1,0 +1,9 @@
+{
+  "navigationBarTitleText": "采集日志",
+  "enablePullDownRefresh": true,
+  "backgroundTextStyle": "dark",
+  "usingComponents": {
+    "state-tag": "/components/state-tag/index",
+    "empty-state": "/components/empty-state/index"
+  }
+}

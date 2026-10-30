@@ -1,0 +1,22 @@
+spring:
+  datasource:
+    # openGauss 6.x JDBC 驱动沿用 PostgreSQL 包名与 URL 前缀（org.postgresql.Driver / jdbc:postgresql）
+    driver-class-name: org.postgresql.Driver
+    url: jdbc:postgresql://127.0.0.1:5432/lingkan?currentSchema=public
+    username: ${LINGKAN_DB_USER:gaussdb}
+    password: ${LINGKAN_DB_PASSWORD:Lingkan@123}
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+      connection-timeout: 10000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+      pool-name: LingKanHikari
+
+lingkan:
+  sync:
+    enabled: false
+
+logging:
+  level:
+    com.lingkan: DEBUG

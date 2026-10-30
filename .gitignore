@@ -1,0 +1,34 @@
+# ---- 依赖与构建产物 ----
+node_modules/
+dist/
+unpackage/
+backend/target/
+*.class
+*.jar
+!backend/.mvn/wrapper/maven-wrapper.jar
+
+# ---- 本地工具链（体积大，不入库）----
+.tools/
+.backup/
+
+# ---- 环境与密钥 ----
+.env
+.env.*
+*.local
+docker/.env
+*.pem
+*.key
+*.p12
+*.jks
+!**/application-*.yml
+
+# ---- 编辑器与系统 ----
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# ---- 日志与临时文件 ----
+*.log
+logs/
+tmp/

@@ -1,0 +1,6 @@
+{
+  "navigationBarTitleText": "搜索股票",
+  "usingComponents": {
+    "empty-state": "/components/empty-state/index"
+  }
+}

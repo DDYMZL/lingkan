@@ -1,0 +1,1 @@
+<view class="lk-tag lk-tag--{{tone}}">{{label}}</view>

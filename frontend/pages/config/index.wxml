@@ -1,0 +1,79 @@
+<view class="page">
+
+  <view class="summary">
+    <view class="summary__item">
+      <text class="summary__num">{{metricEnabled}}</text>
+      <text class="summary__label">已启用指标</text>
+    </view>
+    <view class="summary__split"></view>
+    <view class="summary__item">
+      <text class="summary__num">{{pinnedCount}}</text>
+      <text class="summary__label">列表页展示</text>
+    </view>
+    <view class="summary__split"></view>
+    <view class="summary__item">
+      <text class="summary__num">{{metricTotal}}</text>
+      <text class="summary__label">指标库总量</text>
+    </view>
+  </view>
+
+  <view class="section">
+    <view class="card card--tight entry" bindtap="goMetrics" hover-class="entry--hover">
+      <view class="entry__icon">⚙️</view>
+      <view class="col flex-1">
+        <view class="entry__title">指标展示配置</view>
+        <view class="entry__desc">开关、排序、精度、在哪些页面展示、指定主数据源</view>
+      </view>
+      <text class="entry__arrow">›</text>
+    </view>
+
+    <view class="card card--tight entry" bindtap="goDataSource" hover-class="entry--hover">
+      <view class="entry__icon">🔌</view>
+      <view class="col flex-1">
+        <view class="entry__title">数据源管理</view>
+        <view class="entry__desc">连通性测试、启停、采集日志</view>
+      </view>
+      <text class="entry__arrow">›</text>
+    </view>
+  </view>
+
+  <view class="section">
+    <view class="card">
+      <view class="row--between">
+        <view class="t-section">数据状态</view>
+        <view class="t-hint">{{phaseText}} · {{serverTimeText}}</view>
+      </view>
+
+      <view wx:if="{{loading}}" class="loading-wrap">
+        <view class="spinner"></view>
+        <text>加载中…</text>
+      </view>
+
+      <view wx:elif="{{collections.length}}" class="status-list">
+        <view wx:for="{{collections}}" wx:key="providerCode" class="status">
+          <view class="status__left">
+            <view class="status__name-row">
+              <text class="status__name">{{item.providerName}}</text>
+              <state-tag status="{{item.healthStatus}}" text="{{item.healthText}}" />
+            </view>
+            <view class="status__meta">{{item.message}} · 最近成功 {{item.lastSuccessText}}</view>
+          </view>
+        </view>
+      </view>
+
+      <view wx:else class="status-empty">暂无数据源状态</view>
+    </view>
+  </view>
+
+  <view class="section">
+    <view class="card card--tight entry" bindtap="goAbout" hover-class="entry--hover">
+      <view class="entry__icon">📄</view>
+      <view class="col flex-1">
+        <view class="entry__title">关于与免责声明</view>
+        <view class="entry__desc">数据来源说明、使用边界</view>
+      </view>
+      <text class="entry__arrow">›</text>
+    </view>
+  </view>
+
+</view>

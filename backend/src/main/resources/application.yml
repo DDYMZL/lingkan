@@ -1,0 +1,76 @@
+server:
+  port: 8080
+  shutdown: graceful
+  servlet:
+    encoding:
+      charset: UTF-8
+      force: true
+
+spring:
+  application:
+    name: lingkan-backend
+  profiles:
+    active: dev
+  jackson:
+    default-property-inclusion: non_null
+    time-zone: Asia/Shanghai
+    date-format: yyyy-MM-dd HH:mm:ss
+  threads:
+    virtual:
+      enabled: true
+  mvc:
+    problemdetails:
+      enabled: false
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+    default-enum-type-handler: org.apache.ibatis.type.EnumOrdinalTypeHandler
+  global-config:
+    banner: false
+    db-config:
+      id-type: auto
+      logic-delete-field: deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    tags-sorter: alpha
+  api-docs:
+    path: /v3/api-docs
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: when_authorized
+
+lingkan:
+  # 第三方数据采集总开关。Phase 0/1 默认关闭，确认数据源方案后再开启。
+  sync:
+    enabled: false
+  datasource:
+    # 单用户配置维度，未登录时使用该用户标识（不做注册登录体系）
+    default-user-id: local-user
+  market:
+    # 交易时段判断使用的时间区间
+    session:
+      morning-open: "09:30"
+      morning-close: "11:30"
+      afternoon-open: "13:00"
+      afternoon-close: "15:00"
+  cors:
+    allowed-origins: "*"
+
+logging:
+  level:
+    root: INFO
+    com.lingkan: INFO
+    com.lingkan.datasource: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%thread] [%X{traceId}] %logger{36} - %msg%n"

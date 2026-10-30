@@ -1,0 +1,155 @@
+.page {
+  padding-bottom: 40rpx;
+}
+
+.toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  padding: 20rpx 24rpx 12rpx;
+  background: var(--c-bg);
+}
+
+.search {
+  display: flex;
+  align-items: center;
+  height: 76rpx;
+  padding: 0 24rpx;
+  border-radius: 38rpx;
+  background: #fff;
+  border: 1rpx solid var(--c-line);
+}
+
+.search__icon {
+  font-size: 26rpx;
+  margin-right: 12rpx;
+  opacity: 0.55;
+}
+
+.search__input {
+  flex: 1;
+  font-size: 26rpx;
+  height: 76rpx;
+}
+
+.search__ph {
+  color: var(--c-text-3);
+  font-size: 24rpx;
+}
+
+.search__clear {
+  padding: 8rpx 4rpx 8rpx 16rpx;
+  font-size: 24rpx;
+  color: var(--c-text-3);
+}
+
+.chips {
+  display: flex;
+  white-space: nowrap;
+  margin-top: 16rpx;
+}
+
+.chips--sort {
+  margin-top: 10rpx;
+}
+
+.chip {
+  display: flex;
+  align-items: center;
+  height: 52rpx;
+  padding: 0 22rpx;
+  margin-right: 12rpx;
+  border-radius: 26rpx;
+  background: #fff;
+  border: 1rpx solid var(--c-line);
+  font-size: 22rpx;
+  color: var(--c-text-2);
+  white-space: nowrap;
+}
+
+.chip--on {
+  background: var(--c-primary-soft);
+  border-color: rgba(179, 39, 45, 0.28);
+  color: var(--c-primary);
+  font-weight: 500;
+}
+
+.chip__order {
+  margin-left: 4rpx;
+  font-size: 20rpx;
+}
+
+.summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8rpx 32rpx 16rpx;
+  font-size: 22rpx;
+  color: var(--c-text-3);
+}
+
+.summary__sort {
+  color: var(--c-primary);
+}
+
+.stock-list {
+  margin: 0 24rpx;
+  padding: 0 24rpx;
+}
+
+.stock {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20rpx;
+  padding: 26rpx 0;
+  border-bottom: 1rpx solid var(--c-line);
+}
+
+.stock:last-child {
+  border-bottom: none;
+}
+
+.stock--hover {
+  background: #fafbfc;
+}
+
+.stock__main {
+  flex: 1;
+  min-width: 0;
+}
+
+.stock__head {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+}
+
+.stock__name {
+  max-width: 260rpx;
+  font-size: 30rpx;
+  font-weight: 600;
+}
+
+.stock__ex {
+  font-size: 20rpx;
+  color: var(--c-text-3);
+}
+
+.stock__price {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  min-width: 150rpx;
+}
+
+.stock__price-num {
+  font-size: 32rpx;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.stock__price-chg {
+  margin-top: 4rpx;
+  font-size: 24rpx;
+}

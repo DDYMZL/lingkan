@@ -1,0 +1,35 @@
+.lk-tag {
+  display: inline-flex;
+  align-items: center;
+  height: 30rpx;
+  padding: 0 10rpx;
+  border-radius: 6rpx;
+  font-size: 20rpx;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.lk-tag--ok {
+  color: #0f7a4a;
+  background: #e8f5ee;
+}
+
+.lk-tag--muted {
+  color: #9aa0a6;
+  background: #f2f3f5;
+}
+
+.lk-tag--warn {
+  color: #9a6212;
+  background: #fdf3e3;
+}
+
+.lk-tag--danger {
+  color: #b3272d;
+  background: #fbedee;
+}
+
+.lk-tag--info {
+  color: #2b5aa6;
+  background: #eaf1fb;
+}

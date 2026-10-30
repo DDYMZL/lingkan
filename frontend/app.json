@@ -1,0 +1,57 @@
+{
+  "pages": [
+    "pages/home/index",
+    "pages/ranking/index",
+    "pages/config/index",
+    "pages/about/index",
+    "pages/search/index",
+    "pages/stock/index",
+    "pages/compare/index",
+    "pages/config-metrics/index",
+    "pages/datasource/index",
+    "pages/datasource-logs/index"
+  ],
+  "window": {
+    "backgroundTextStyle": "dark",
+    "navigationBarBackgroundColor": "#FFFFFF",
+    "navigationBarTitleText": "玲看股息",
+    "navigationBarTextStyle": "black",
+    "backgroundColor": "#F4F5F7",
+    "enablePullDownRefresh": false
+  },
+  "tabBar": {
+    "color": "#9AA0A6",
+    "selectedColor": "#B3272D",
+    "backgroundColor": "#FFFFFF",
+    "borderStyle": "black",
+    "list": [
+      {
+        "pagePath": "pages/home/index",
+        "text": "自选",
+        "iconPath": "assets/tabbar/home.png",
+        "selectedIconPath": "assets/tabbar/home-active.png"
+      },
+      {
+        "pagePath": "pages/ranking/index",
+        "text": "全市场",
+        "iconPath": "assets/tabbar/ranking.png",
+        "selectedIconPath": "assets/tabbar/ranking-active.png"
+      },
+      {
+        "pagePath": "pages/config/index",
+        "text": "配置",
+        "iconPath": "assets/tabbar/config.png",
+        "selectedIconPath": "assets/tabbar/config-active.png"
+      },
+      {
+        "pagePath": "pages/about/index",
+        "text": "我的",
+        "iconPath": "assets/tabbar/about.png",
+        "selectedIconPath": "assets/tabbar/about-active.png"
+      }
+    ]
+  },
+  "style": "v2",
+  "sitemapLocation": "sitemap.json",
+  "lazyCodeLoading": "requiredComponents"
+}

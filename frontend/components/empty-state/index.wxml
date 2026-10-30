@@ -1,0 +1,6 @@
+<view class="lk-empty">
+  <view class="lk-empty__icon">{{icon}}</view>
+  <view class="lk-empty__text">{{text}}</view>
+  <view wx:if="{{hint}}" class="lk-empty__hint">{{hint}}</view>
+  <view wx:if="{{actionText}}" class="lk-empty__action" bindtap="onAction">{{actionText}}</view>
+</view>

@@ -1,0 +1,134 @@
+.page {
+  padding-bottom: 60rpx;
+}
+
+.brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 60rpx 40rpx 48rpx;
+  margin: 24rpx 24rpx 0;
+  border-radius: 24rpx;
+  background: linear-gradient(150deg, #b3272d 0%, #8e1f24 60%, #6d171b 100%);
+  color: #fff;
+  box-shadow: 0 10rpx 30rpx rgba(139, 31, 36, 0.2);
+}
+
+.brand__mark {
+  width: 108rpx;
+  height: 108rpx;
+  border-radius: 30rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 52rpx;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.16);
+  border: 1rpx solid rgba(255, 255, 255, 0.34);
+}
+
+.brand__name {
+  margin-top: 20rpx;
+  font-size: 38rpx;
+  font-weight: 600;
+  letter-spacing: 2rpx;
+}
+
+.brand__desc {
+  margin-top: 10rpx;
+  font-size: 21rpx;
+  color: rgba(255, 255, 255, 0.66);
+  text-align: center;
+  line-height: 1.6;
+}
+
+.brand__ver {
+  margin-top: 18rpx;
+  padding: 6rpx 20rpx;
+  border-radius: 20rpx;
+  background: rgba(0, 0, 0, 0.16);
+  font-size: 19rpx;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.src-list {
+  margin-top: 12rpx;
+}
+
+.src {
+  padding: 18rpx 0;
+  border-bottom: 1rpx solid var(--c-line);
+}
+
+.src:last-child {
+  border-bottom: none;
+}
+
+.src__row {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+  flex-wrap: wrap;
+}
+
+.src__name {
+  font-size: 27rpx;
+  font-weight: 500;
+}
+
+.src__desc {
+  margin-top: 6rpx;
+  font-size: 20rpx;
+  line-height: 1.6;
+  color: var(--c-text-3);
+}
+
+.status-empty {
+  padding: 30rpx 0 10rpx;
+  text-align: center;
+  font-size: 22rpx;
+  color: var(--c-text-3);
+}
+
+.li {
+  margin-top: 12rpx;
+  font-size: 22rpx;
+  line-height: 1.85;
+  color: var(--c-text-2);
+}
+
+.disc {
+  margin-top: 12rpx;
+  font-size: 22rpx;
+  line-height: 1.9;
+  color: var(--c-text-2);
+}
+
+.kv {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20rpx;
+  padding: 22rpx 0;
+  border-bottom: 1rpx solid var(--c-line);
+}
+
+.kv:last-child {
+  border-bottom: none;
+}
+
+.kv__k {
+  font-size: 26rpx;
+  color: var(--c-text-2);
+  flex-shrink: 0;
+}
+
+.kv__v {
+  font-size: 24rpx;
+  color: var(--c-text);
+  text-align: right;
+}
+
+.kv__v--danger {
+  color: var(--c-primary);
+}

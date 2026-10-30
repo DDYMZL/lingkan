@@ -1,0 +1,228 @@
+# 变更日志
+
+> 遵循「变更必须同步」原则：任何代码、口径、数据结构变更均需在此登记。
+
+---
+
+## [0.3.0] - 2026-10-30
+
+### 新增：Git 版本控制与 GitHub 关联
+
+**仓库**
+- 在 `D:\project\lingkan` 执行 `git init`（主分支 `main`），关联远程仓库 `https://github.com/DDYMZL/lingkan.git`（别名 `origin`）
+- 首次全量提交并推送至 `origin/main`
+
+**规范**
+- `docs/constitution.md`：新增**铁律 13「功能完成即提交」**，新增「六、版本控制」章节，第三节 AI 执行纪律第 5 条加入 commit/push 动作
+- `docs/GIT_WORKFLOW.md`：新增，规定功能单元的完成判定、commit message 格式（`type(scope): 中文描述`）、分支策略、提交前自检清单、禁止入库清单、回滚方式、AI 工具附加要求
+- `docs/README.md`：目录导航与阅读顺序加入 `GIT_WORKFLOW.md`
+
+**变更**
+- `.gitignore` 重写：显式排除 `.tools/`（约 525 MB 本地工具链）、`.backup/`、构建产物、环境变量与密钥文件、日志与 IDE 配置
+
+### 文档同步
+- `docs/constitution.md` → v1.1
+- `docs/GIT_WORKFLOW.md` → v1.0
+- `docs/README.md`、`docs/changes/changelog.md`
+
+---
+
+## [0.2.0] - 2026-10-30
+
+### 变更：前端技术栈由 uni-app 改为微信小程序原生
+
+**决策**
+- 按用户要求废弃 uni-app + Vue3 + TS + Vite + Pinia + ECharts 方案，`frontend/` 清空后重建为**微信小程序原生工程**（WXML / WXSS / JavaScript / JSON）
+- 不引入任何 npm 依赖、打包器、跨端框架；微信开发者工具直接打开 `frontend/` 即运行，源码即产物
+
+**移除**
+- `frontend/src/`（8 个 Vue 页面、18 个 Vue 组件、4 个 Pinia store、TS service 层）
+- `package.json` / `vite.config.ts` / `tsconfig.json` / `index.html` / `.env.*` / `tests/` / `node_modules/`
+- ADR-0004（pnpm → npm）随之失效，不再需要包管理器
+
+**新增（10 页面 + 3 组件 + 6 service）**
+
+| 层 | 文件 | 说明 |
+|---|---|---|
+| 入口 | `app.js` / `app.json` / `app.wxss` / `sitemap.json` / `project.config.json` | tabBar 四入口，`lazyCodeLoading: requiredComponents` |
+| 配置 | `config/index.js` | `baseUrl` / `apiPrefix` / `timeout` / 环境切换 |
+| 工具 | `utils/request.js` | Promise 封装、`X-LingKan-User` 注入、`code===0` 解包、中文错误提示 |
+| 工具 | `utils/format.js` | 时间/相对时间/涨跌色/大数/状态标签映射 |
+| 工具 | `utils/metrics.js` | 动态指标组装：列表列、分类分组、行情头、来源追溯 |
+| 工具 | `utils/user.js` | 本地 user_id 生成与持久化 |
+| 服务 | `services/{stock,system,metrics,preference,datasource,watchlist}.js` | 一一对应后端 Controller |
+| 组件 | `components/state-tag` | 指标/采集状态标签（OK/MISSING/STALE/ERROR/PENDING） |
+| 组件 | `components/empty-state` | 空态占位 |
+| 组件 | `components/line-chart` | Canvas 2D 折线图（自研，替代 ECharts） |
+| 页面 | `pages/home` | 自选 + 市场概览 + 交易时段 + 数据时间 |
+| 页面 | `pages/ranking` | 全市场分页 + 关键词/交易所筛选 + 按指标排序 |
+| 页面 | `pages/search` | 搜索并直接加入自选 |
+| 页面 | `pages/stock` | 详情：行情 + 分类指标（带来源/时间）+ 历史折线 + 分红 |
+| 页面 | `pages/compare` | 单指标多数据源对比 + 切换主数据源 |
+| 页面 | `pages/config` | 配置中心 + 数据源健康状态 |
+| 页面 | `pages/config-metrics` | 指标启停 / 展示位置 / 精度 / 排序 / 主数据源 |
+| 页面 | `pages/datasource` | 数据源启停 + 连通性测试 |
+| 页面 | `pages/datasource-logs` | 采集日志 |
+| 页面 | `pages/about` | 版本、数据来源、使用边界、免责声明、清缓存 |
+| 资源 | `assets/tabbar/*.png` | 8 个 81×81 图标，纯脚本生成（无外部依赖） |
+
+**关键实现约束**
+- 页面模板零指标字面量：列与分组全部来自 `/user/metric-preferences` 与 `/metrics/categories`
+- `PENDING` 口径指标只渲染「待确认」，不输出任何计算结果
+- `available === false` 时只显示空态，不估算、不补值
+- 指标展示决策统一收敛在 `utils/metrics.js` + `components/state-tag`
+
+**质量校验**
+- 25 个 JS 文件 `node --check` 全部通过
+- 全部 JSON 文件可解析；10 个页面的 js/json/wxml/wxss 四件套齐全
+- 全部 WXML 标签配对检查通过；`usingComponents` 引用路径全部存在
+- 汇总：**0 问题**
+
+**文档同步**
+- `docs/constitution.md` 原则 4 技术栈
+- `docs/architecture/frontend-architecture.md` 重写
+- `docs/architecture/system-architecture.md` 架构图
+- `docs/specs/001-project-overview/{design,tasks,acceptance}.md`
+- `docs/specs/008-mini-program-ui/{design,tasks}.md` 重写
+- `docs/tech-stack-report.md` 前端章节
+
+### 已知问题
+
+| 编号 | 问题 | 状态 |
+|---|---|---|
+| ISSUE-05 | 微信开发者工具尚未实际打开验证渲染 | 待本地验证 |
+| ISSUE-06 | 真机调试需 HTTPS 域名（当前为 localhost） | 待部署 |
+
+---
+
+## [0.1.0] - 2026-10-30
+
+### 新增：项目初始化（Phase 0）
+
+**目录与工程**
+- 创建 `D:\project\lingkan`，四个一级目录 `frontend` / `backend` / `docker` / `docs`（严格英文，无中文一级目录）
+- 前端：uni-app + Vue 3 + TypeScript(strict) + Vite + Pinia + ECharts + SCSS，目标 `mp-weixin`
+- 后端：Spring Boot 4.1.2 + Java 25 + MyBatis-Plus 3.5.18.1 + openGauss JDBC 6.0.6
+- 部署：Docker Compose（openGauss 5.0.0 + backend + nginx）+ start/stop/restart/backup/restore 脚本
+
+**SDD 文档**
+- `docs/constitution.md`：12 条项目宪法原则
+- `docs/specs/001` ~ `008`：8 个功能 Spec（spec / design / tasks / acceptance）
+- `docs/architecture/`：系统、前端、后端、数据源、数据库五份架构文档
+- `docs/api/api-contract.md`：完整 API 契约
+- `docs/database/schema.md`：14 张表的字段级设计
+- `docs/tech-stack-report.md`：技术选型报告（含兼容性核实与风险）
+- `docs/tasks/implementation-plan.md`：7 阶段实施计划
+
+**后端模块**（86 个 Java 文件）
+- `stock` 股票基础信息、列表、搜索、详情
+- `market` 市场概览与刷新
+- `metrics` 指标定义、用户偏好、指标值解析
+- `datasource` 数据源注册、启停、健康检查、适配器（腾讯/东财/新浪 + 5 个占位）
+- `dividend` / `financial` 分红与财务数据
+- `technical` 技术指标计算器
+- `watchlist` 自选股
+- `history` 历史序列查询
+- `scheduler` 定时采集骨架（默认关闭）
+- `system` 数据状态
+- `common` 统一响应、异常、CORS、缓存、异步、OpenAPI、请求追踪、用户上下文、迁移器
+
+**前端页面与组件**（24 个 Vue 文件）
+- 8 个页面：首页、市场、自选、股票详情、指标配置、数据源配置、数据源对比、我的
+- 18 个组件：`MetricValue`（唯一指标渲染点）、`StockRow`/`StockCard`/`StockSearch`、`MetricSelector`/`MetricSort`/`MetricFilter`、`SourceSelector`/`SourceCompare`/`SourceStatus`、`LineChart`/`PeChart`/`DividendChart`、`LkPage`/`LkEmpty` 等
+- 4 个 Pinia store、7 个 service、统一 `request.ts`、小程序 canvas 2d 图表封装
+
+**数据库迁移**
+- `V1__init_schema.sql`：14 张表 + 唯一约束 + 索引
+- `V2__seed_metric_definitions.sql`：预置指标定义（含 6 个 `PENDING` 周线指标）
+- `V3__seed_providers_and_bindings.sql`：8 个数据源 + 指标绑定初始方案
+
+### 新增：数据源研究（Phase 1）
+
+- 8 个候选数据源**逐一真实请求验证**，结果记录于 `docs/specs/004-data-source/source-research.md`
+- 关键发现：
+  - 东方财富 5 个接口全部 HTTP 200 可用（列表/快照/K线/分红/财报）
+  - 腾讯财经批量接口可用，字段位置已实测确认，编码为 **GBK**
+  - 新浪财经可用但必须带 `Referer`
+  - **乐咕乐股全部 404，判定不可用**
+  - Tushare 需 Token（业务码 40101）
+  - 巨潮仅返回公告索引，无结构化财务字段
+- 三源交叉核对 600519：最新价 1392.05、涨跌幅 2.81%、PB 6.93 **三源一致**
+
+### 决策记录
+
+| 编号 | 决策 | 状态 |
+|---|---|---|
+| ADR-0001 | 不使用 Flyway，改用内置 `DbMigrationRunner` | 待用户确认 |
+| ADR-0002 | 乐咕乐股不可用，股息率改为系统计算 | 已采用 |
+| ADR-0003 | 接口 PE 口径有歧义，PE-TTM 一律自算 | 已采用 |
+| ADR-0004 | pnpm 在 Windows 下符号链接失败，改用 npm | 已采用 |
+| ADR-0005 | 不使用数据库外键，改由应用层保证 | 已采用 |
+
+### 修复
+
+- **MyBatis-Plus 分页插件缺失导致编译失败**
+  - 现象：`MybatisPlusConfig.java` 报 `找不到符号: 类 PaginationInnerInterceptor`
+  - 原因：MyBatis-Plus 3.5.9 起把基于 JsqlParser 的内置拦截器（含 `PaginationInnerInterceptor`）从 `mybatis-plus-extension` 拆分到独立构件
+  - 修复：`pom.xml` 增加 `com.baomidou:mybatis-plus-jsqlparser:3.5.18.1`（版本与 starter 严格一致）
+  - 验证：`mvn -DskipTests package` **BUILD SUCCESS**，85 个主源文件 + 1 个测试源文件编译通过，产出 `target/lingkan-backend-1.0.0.jar`（36.31 MB，已 repackage 为可执行 jar）
+
+### 构建验证记录
+
+| 项 | 结果 |
+|---|---|
+| JDK | Temurin 25.0.5+8（`D:\project\lingkan\.tools\jdk-25.0.5+8`） |
+| Maven | 3.9.16（项目内 `.tools`） |
+| 后端编译 | ✅ BUILD SUCCESS，85 个源文件 |
+| 后端可执行包 | ✅ `lingkan-backend-1.0.0.jar` 36.31 MB |
+| Spring Boot 版本 | ✅ 4.1.2（parent 解析成功） |
+| openGauss 驱动 | ✅ 依赖解析成功（实际连接未验证） |
+| 前端编译 | ⏳ 依赖安装受网络影响，尚未完成 |
+
+### 已知问题
+
+| 编号 | 问题 | 状态 |
+|---|---|---|
+| T-TECH-01 | `DataSourceService` 跨模块注入 `MetricSourceBindingMapper` | 待重构 |
+| T-TECH-02 | 适配器限流为简单 sleep，非线程安全令牌桶 | 待改进 |
+| T-TECH-03 | 缺少集成测试（需 openGauss） | 待补 |
+| ISSUE-01 | 前端依赖安装受网络影响，尚未完成 | 进行中 |
+| ISSUE-02 | 后端首次构建依赖下载中 | 进行中 |
+| ISSUE-03 | Docker 守护进程未启动，openGauss 未连通 | 阻塞 |
+| ISSUE-04 | 微信小程序尚未编译验证 | 阻塞 |
+
+### 待用户确认
+
+| 编号 | 问题 | 影响 |
+|---|---|---|
+| Q7-1~Q7-8 | 周30/周中/周60/周下/周上/带内位置的计算公式与参数 | 6 个指标无法实现 |
+| Q-7.2 | 「近3天创60日新低」的 5 项口径（价格字段/窗口含当日/复权/3天定义/OR或连续） | 当前按默认值实现，标记 `review` |
+| Q7-9 | 指标口径变更时覆盖旧值还是保留多版本行 | 影响 `stock_daily_metrics` 设计 |
+| R1 | 是否接受 Flyway 替换为内置迁移器 | 偏离原技术文档 |
+| Q4-2 | 是否申请 Tushare Token | 影响备用数据源可用性 |
+
+### 未实现（明确排除在第一版外）
+
+- 周30 / 周中 / 周60 / 周下 / 周上 / 带内位置（公式待确认）
+- PC 管理后台 / 独立 Web 管理系统（项目边界禁止）
+- 港股 / 美股 / 基金 / 期货 / 交易功能（项目边界禁止）
+- 多用户注册登录（保留 `user_id` 维度）
+- Python AKShare 采集容器（目录预留）
+- 巨潮财报 PDF 解析
+- K 线图（仅折线图）
+- Redis（Caffeine 代替）
+
+---
+
+## 模板（后续变更请按此格式追加）
+
+```markdown
+## [版本号] - YYYY-MM-DD
+
+### 新增
+### 变更
+### 修复
+### 移除
+### 口径变更（重要：需同步 calculation_version）
+### 文档同步
+```

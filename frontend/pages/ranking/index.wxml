@@ -1,0 +1,99 @@
+<view class="page">
+
+  <!-- 搜索 + 筛选（吸顶） -->
+  <view class="toolbar">
+    <view class="search">
+      <text class="search__icon">🔍</text>
+      <input
+        class="search__input"
+        value="{{keyword}}"
+        placeholder="搜索代码或名称，如 600519 / 茅台"
+        placeholder-class="search__ph"
+        confirm-type="search"
+        bindinput="onKeywordInput"
+        bindconfirm="onKeywordConfirm"
+      />
+      <text wx:if="{{keyword}}" class="search__clear" bindtap="clearKeyword">✕</text>
+    </view>
+
+    <scroll-view class="chips" scroll-x enable-flex show-scrollbar="{{false}}">
+      <view
+        wx:for="{{exchangeOptions}}"
+        wx:key="code"
+        class="chip {{exchange === item.code ? 'chip--on' : ''}}"
+        data-code="{{item.code}}"
+        bindtap="onTapExchange"
+      >{{item.name}}</view>
+    </scroll-view>
+
+    <scroll-view wx:if="{{sortOptions.length}}" class="chips chips--sort" scroll-x enable-flex show-scrollbar="{{false}}">
+      <view
+        wx:for="{{sortOptions}}"
+        wx:key="code"
+        class="chip {{sortMetric === item.code ? 'chip--on' : ''}}"
+        data-code="{{item.code}}"
+        bindtap="onTapSort"
+      >
+        <text>{{item.name}}</text>
+        <text wx:if="{{sortMetric === item.code}}" class="chip__order">{{sortOrder === 'desc' ? '↓' : '↑'}}</text>
+      </view>
+    </scroll-view>
+  </view>
+
+  <view class="summary">
+    <text>共 {{total}} 只</text>
+    <text wx:if="{{sortMetric}}" class="summary__sort">按指标排序中</text>
+  </view>
+
+  <view wx:if="{{loading}}" class="card loading-wrap">
+    <view class="spinner"></view>
+    <text>加载中…</text>
+  </view>
+
+  <block wx:elif="{{rows.length}}">
+    <view class="card card--tight stock-list">
+      <view
+        wx:for="{{rows}}"
+        wx:key="code"
+        class="stock"
+        hover-class="stock--hover"
+        hover-stay-time="60"
+        data-code="{{item.code}}"
+        bindtap="goDetail"
+      >
+        <view class="stock__main">
+          <view class="stock__head">
+            <text class="stock__name ellipsis">{{item.name}}</text>
+            <text wx:if="{{item.st}}" class="tag tag--danger">ST</text>
+            <text class="stock__ex">{{item.exchange}}</text>
+          </view>
+          <view class="metric-cells">
+            <view wx:for="{{item.cells}}" wx:for-item="cell" wx:key="code" class="metric-cell">
+              <text>{{cell.label}}</text>
+              <text class="metric-cell__value {{cell.pending ? 'metric-cell__value--pending' : ''}}">{{cell.value}}{{cell.unit}}</text>
+            </view>
+          </view>
+        </view>
+        <view class="stock__price">
+          <text class="stock__price-num t-num {{item.tone}}">{{item.price}}</text>
+          <text class="stock__price-chg t-num {{item.tone}}">{{item.changeText}}</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="list-end">
+      <text wx:if="{{loadingMore}}">加载中…</text>
+      <text wx:elif="{{!hasMore}}">已经到底了</text>
+      <text wx:else>上拉加载更多</text>
+    </view>
+  </block>
+
+  <view wx:else class="card">
+    <empty-state
+      icon="🔎"
+      text="没有匹配的股票"
+      hint="换个关键词，或检查后端是否已完成股票基础数据同步"
+    />
+  </view>
+
+</view>

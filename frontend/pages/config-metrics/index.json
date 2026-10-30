@@ -1,0 +1,7 @@
+{
+  "navigationBarTitleText": "指标展示配置",
+  "usingComponents": {
+    "state-tag": "/components/state-tag/index",
+    "empty-state": "/components/empty-state/index"
+  }
+}

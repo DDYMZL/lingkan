@@ -1,0 +1,68 @@
+<view class="page">
+
+  <view class="intro">
+    <view class="intro__title">{{stockName}} · {{metricName}}</view>
+    <view class="intro__desc">
+      下方并列展示各数据源返回的取值。系统不做平均、不做补齐，差异值以主数据源为基准；
+      单位：{{unit || '—'}}
+    </view>
+  </view>
+
+  <view wx:if="{{loading}}" class="loading-wrap">
+    <view class="spinner"></view>
+    <text>正在向各数据源取数…</text>
+  </view>
+
+  <block wx:elif="{{sources.length}}">
+    <view class="card source-card">
+      <view wx:for="{{sources}}" wx:key="sourceCode" class="source">
+        <view class="source__head">
+          <view class="source__name-row">
+            <text class="source__name">{{item.sourceName}}</text>
+            <text wx:if="{{item.primary}}" class="tag tag--gold">主数据源</text>
+            <state-tag wx:if="{{item.status !== 'OK'}}" status="{{item.status}}" text="{{item.statusText}}" />
+          </view>
+          <view class="source__value-row">
+            <text class="source__value t-num {{item.hasValue ? '' : 'source__value--none'}}">{{item.displayValue}}</text>
+            <text wx:if="{{item.unit}}" class="source__unit">{{item.unit}}</text>
+          </view>
+        </view>
+
+        <view class="source__meta">
+          <view class="source__meta-row">
+            <text class="source__meta-label">数据时间</text>
+            <text>{{item.dataTimeText}}</text>
+          </view>
+          <view class="source__meta-row">
+            <text class="source__meta-label">抓取时间</text>
+            <text>{{item.fetchTimeText}}</text>
+          </view>
+          <view wx:if="{{item.diffText}}" class="source__meta-row">
+            <text class="source__meta-label">与主源差异</text>
+            <text class="source__diff">{{item.diffText}}</text>
+          </view>
+        </view>
+
+        <view
+          wx:if="{{!item.primary && item.hasValue}}"
+          class="source__action"
+          data-code="{{item.sourceCode}}"
+          bindtap="switchPrimary"
+        >设为主数据源</view>
+      </view>
+    </view>
+
+    <view class="foot-note">
+      说明：主数据源决定指标在首页、列表、详情里的默认取值；其他来源保留在对比列表中，便于交叉验证。
+    </view>
+  </block>
+
+  <view wx:else class="card section">
+    <empty-state
+      icon="🔌"
+      text="该指标还没有可用的数据源绑定"
+      hint="请到「配置 - 数据源管理」启用数据源，并在指标配置里绑定"
+    />
+  </view>
+
+</view>

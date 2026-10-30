@@ -1,0 +1,43 @@
+<view class="page">
+
+  <view wx:if="{{loading}}" class="loading-wrap">
+    <view class="spinner"></view>
+    <text>加载中…</text>
+  </view>
+
+  <block wx:elif="{{logs.length}}">
+    <view wx:for="{{logs}}" wx:key="id" class="card section log">
+      <view class="log__head">
+        <view class="log__title">
+          <text class="log__type">{{item.syncType}}</text>
+          <text wx:if="{{item.metricCode}}" class="log__metric">{{item.metricCode}}</text>
+        </view>
+        <state-tag status="{{item.syncStatus}}" text="{{item.statusText}}" />
+      </view>
+
+      <view class="log__counts">
+        <text>总数 {{item.total}}</text>
+        <text class="log__ok">成功 {{item.success}}</text>
+        <text class="log__fail">失败 {{item.failed}}</text>
+      </view>
+
+      <view class="log__time">
+        <text>开始 {{item.startedText}}</text>
+        <text>结束 {{item.finishedText}}</text>
+      </view>
+
+      <view wx:if="{{item.errorMessage}}" class="log__error">{{item.errorMessage}}</view>
+    </view>
+
+    <view class="foot-note">仅展示最近 30 条采集记录。</view>
+  </block>
+
+  <view wx:else class="card section">
+    <empty-state
+      icon="🗒"
+      text="暂无采集日志"
+      hint="定时采集默认关闭，可在后端 application.yml 中开启 lingkan.sync.enabled"
+    />
+  </view>
+
+</view>

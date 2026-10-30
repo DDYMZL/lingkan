@@ -1,0 +1,61 @@
+<view class="page">
+
+  <view class="searchbar">
+    <view class="search">
+      <text class="search__icon">🔍</text>
+      <input
+        class="search__input"
+        value="{{keyword}}"
+        focus="{{focus}}"
+        placeholder="代码或名称，如 600519 / 茅台"
+        placeholder-class="search__ph"
+        confirm-type="search"
+        bindinput="onInput"
+        bindconfirm="onConfirm"
+      />
+    </view>
+  </view>
+
+  <view wx:if="{{searching}}" class="loading-wrap">
+    <view class="spinner"></view>
+    <text>搜索中…</text>
+  </view>
+
+  <block wx:elif="{{results.length}}">
+    <view class="card card--tight result-list">
+      <view wx:for="{{results}}" wx:key="code" class="result" data-code="{{item.code}}" bindtap="goDetail" hover-class="result--hover">
+        <view class="result__main">
+          <view class="result__head">
+            <text class="result__name ellipsis">{{item.name}}</text>
+            <text wx:if="{{item.st}}" class="tag tag--danger">ST</text>
+          </view>
+          <view class="result__meta t-hint">
+            <text>{{item.code}}</text>
+            <text wx:if="{{item.exchange}}"> · {{item.exchange}}</text>
+            <text wx:if="{{item.industry}}"> · {{item.industry}}</text>
+          </view>
+        </view>
+        <view class="result__right">
+          <text class="result__price t-num {{item.tone}}">{{item.price}}</text>
+          <view
+            class="btn btn--sm {{watchMap[item.code] ? 'btn--ghost' : 'btn--primary'}}"
+            catchtap="onAdd"
+            data-code="{{item.code}}"
+          >{{watchMap[item.code] ? '已自选' : '加自选'}}</view>
+        </view>
+      </view>
+    </view>
+  </block>
+
+  <view wx:elif="{{searched}}" class="card">
+    <empty-state icon="🫥" text="没有找到相关股票" hint="试试完整代码，或确认后端股票基础数据已同步" />
+  </view>
+
+  <view wx:else class="tips">
+    <view class="tips__title">搜索提示</view>
+    <view class="tips__item">· 支持 6 位代码精确/模糊匹配</view>
+    <view class="tips__item">· 支持股票简称关键词，如「茅台」「银行」</view>
+    <view class="tips__item">· 结果里的价格与涨跌幅均来自后端实时行情</view>
+  </view>
+
+</view>

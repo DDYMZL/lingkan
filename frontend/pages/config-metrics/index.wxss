@@ -1,0 +1,258 @@
+.page {
+  padding-bottom: calc(160rpx + env(safe-area-inset-bottom));
+}
+
+.topbar {
+  padding: 20rpx 32rpx;
+  background: rgba(244, 245, 247, 0.96);
+  position: sticky;
+  top: 0;
+  z-index: 5;
+}
+
+.topbar__text {
+  font-size: 21rpx;
+  line-height: 1.7;
+  color: var(--c-text-3);
+}
+
+.list {
+  margin: 0 24rpx;
+  border-radius: 20rpx;
+  background: #fff;
+  overflow: hidden;
+  box-shadow: 0 2rpx 12rpx rgba(23, 24, 26, 0.04);
+}
+
+.group-title {
+  padding: 26rpx 24rpx 12rpx;
+  font-size: 22rpx;
+  font-weight: 600;
+  color: var(--c-primary);
+  letter-spacing: 1rpx;
+  background: #fbfbfc;
+  border-bottom: 1rpx solid var(--c-line);
+}
+
+.mrow {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  padding: 22rpx 24rpx;
+  border-bottom: 1rpx solid var(--c-line);
+}
+
+.mrow--off {
+  opacity: 0.62;
+}
+
+.mrow__main {
+  flex: 1;
+  min-width: 0;
+}
+
+.mrow__title-row {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+}
+
+.mrow__name {
+  font-size: 28rpx;
+  font-weight: 500;
+}
+
+.mrow__meta {
+  margin-top: 4rpx;
+  font-size: 20rpx;
+  color: var(--c-text-3);
+}
+
+.mrow__right {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+}
+
+.mrow__switch {
+  transform: scale(0.85);
+  transform-origin: right center;
+}
+
+.mrow__caret {
+  display: inline-block;
+  font-size: 30rpx;
+  color: #c2c6ca;
+  line-height: 1;
+  transition: transform 0.18s ease;
+  transform: rotate(0deg);
+}
+
+.mrow__caret--open {
+  transform: rotate(180deg);
+  color: var(--c-primary);
+}
+
+/* ---------- 展开详情 ---------- */
+.mdetail {
+  padding: 8rpx 24rpx 22rpx;
+  background: #fafbfc;
+  border-bottom: 1rpx solid var(--c-line);
+}
+
+.mdetail__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14rpx 0;
+}
+
+.mdetail__label {
+  font-size: 24rpx;
+  color: var(--c-text-2);
+}
+
+.positions {
+  display: flex;
+  gap: 10rpx;
+}
+
+.pos {
+  height: 52rpx;
+  padding: 0 22rpx;
+  display: flex;
+  align-items: center;
+  border-radius: 26rpx;
+  background: #fff;
+  border: 1rpx solid var(--c-line);
+  font-size: 22rpx;
+  color: var(--c-text-2);
+}
+
+.pos--on {
+  background: var(--c-primary-soft);
+  border-color: rgba(179, 39, 45, 0.3);
+  color: var(--c-primary);
+  font-weight: 500;
+}
+
+.stepper {
+  display: flex;
+  align-items: center;
+  gap: 4rpx;
+  background: #fff;
+  border: 1rpx solid var(--c-line);
+  border-radius: 26rpx;
+  overflow: hidden;
+}
+
+.stepper__btn {
+  width: 60rpx;
+  height: 52rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 30rpx;
+  color: var(--c-text-2);
+}
+
+.stepper__btn:active {
+  background: #f2f3f5;
+}
+
+.stepper__num {
+  min-width: 40rpx;
+  text-align: center;
+  font-size: 24rpx;
+  font-variant-numeric: tabular-nums;
+}
+
+.picker {
+  height: 52rpx;
+  padding: 0 20rpx;
+  display: flex;
+  align-items: center;
+  border-radius: 26rpx;
+  background: #fff;
+  border: 1rpx solid var(--c-line);
+  font-size: 22rpx;
+  color: var(--c-text);
+  max-width: 320rpx;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.picker__caret {
+  margin-left: 8rpx;
+  color: var(--c-text-3);
+}
+
+.mini-actions {
+  display: flex;
+  gap: 12rpx;
+}
+
+.mini-btn {
+  height: 52rpx;
+  padding: 0 24rpx;
+  display: flex;
+  align-items: center;
+  border-radius: 26rpx;
+  background: #fff;
+  border: 1rpx solid var(--c-line);
+  font-size: 22rpx;
+  color: var(--c-text-2);
+}
+
+.mini-btn:active {
+  background: #f2f3f5;
+}
+
+.mdetail__desc {
+  margin-top: 8rpx;
+  padding-top: 14rpx;
+  border-top: 1rpx dashed var(--c-line);
+  font-size: 20rpx;
+  line-height: 1.8;
+  color: var(--c-text-3);
+}
+
+/* ---------- 底部保存 ---------- */
+.savebar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  gap: 20rpx;
+  padding: 16rpx 24rpx calc(16rpx + env(safe-area-inset-bottom));
+  background: rgba(255, 255, 255, 0.97);
+  border-top: 1rpx solid var(--c-line);
+}
+
+.savebar__btn {
+  height: 80rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 40rpx;
+  font-size: 28rpx;
+  font-weight: 500;
+}
+
+.savebar__btn--ghost {
+  width: 220rpx;
+  background: #f2f3f5;
+  color: var(--c-text);
+}
+
+.savebar__btn--primary {
+  flex: 1;
+  background: var(--c-primary);
+  color: #fff;
+}
+
+.savebar__btn--disabled {
+  background: #e6e7e9;
+  color: #fff;
+}

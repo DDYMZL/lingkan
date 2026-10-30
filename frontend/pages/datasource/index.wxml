@@ -1,0 +1,85 @@
+<view class="page">
+
+  <view class="notice">
+    数据源是「可配置」的一等公民：这里可以测试连通性、启停数据源、查看采集日志。
+    密钥只保存在后端，永不下发到小程序。
+  </view>
+
+  <view wx:if="{{loading}}" class="loading-wrap">
+    <view class="spinner"></view>
+    <text>加载中…</text>
+  </view>
+
+  <block wx:elif="{{providers.length}}">
+    <view wx:for="{{providers}}" wx:key="providerCode" class="card section">
+      <view class="ds__head">
+        <view class="ds__title-row">
+          <text class="ds__name">{{item.providerName}}</text>
+          <state-tag status="{{item.healthStatus}}" text="{{item.healthText}}" />
+          <text wx:if="{{item.verified}}" class="tag tag--ok">已实测</text>
+          <text wx:if="{{item.requiresToken}}" class="tag tag--warn">需 Token</text>
+        </view>
+        <view class="ds__switch" catchtap="noop">
+          <switch
+            checked="{{item.enabled}}"
+            color="#b3272d"
+            data-code="{{item.providerCode}}"
+            data-enabled="{{item.enabled}}"
+            bindchange="onToggle"
+          />
+        </view>
+      </view>
+
+      <view class="ds__code">{{item.providerCode}}<text wx:if="{{item.providerType}}"> · {{item.providerType}}</text></view>
+      <view wx:if="{{item.description}}" class="ds__desc">{{item.description}}</view>
+
+      <view class="ds__stats">
+        <view class="ds__stat">
+          <text class="ds__stat-num">{{item.metricCount}}</text>
+          <text class="ds__stat-label">支持指标</text>
+        </view>
+        <view class="ds__stat">
+          <text class="ds__stat-num">{{item.interval}}</text>
+          <text class="ds__stat-label">请求间隔</text>
+        </view>
+        <view class="ds__stat">
+          <text class="ds__stat-num">{{item.lastSuccessText}}</text>
+          <text class="ds__stat-label">最近成功</text>
+        </view>
+      </view>
+
+      <view class="ds__actions">
+        <view
+          class="ds__btn"
+          data-code="{{item.providerCode}}"
+          bindtap="onTest"
+        >{{testing === item.providerCode ? '测试中…' : '连通性测试'}}</view>
+        <view
+          class="ds__btn"
+          data-code="{{item.providerCode}}"
+          data-name="{{item.providerName}}"
+          bindtap="goLogs"
+        >采集日志</view>
+        <view
+          class="ds__btn {{item.enabled ? 'ds__btn--danger' : 'ds__btn--primary'}}"
+          data-code="{{item.providerCode}}"
+          data-enabled="{{item.enabled}}"
+          bindtap="onToggle"
+        >{{item.enabled ? '停用' : '启用'}}</view>
+      </view>
+    </view>
+
+    <view class="foot-note">
+      提示：停用数据源后，依赖它的指标会显示为「缺失」，不会回退到其他来源，也不会用旧值冒充新值。
+    </view>
+  </block>
+
+  <view wx:else class="card section">
+    <empty-state
+      icon="🔌"
+      text="暂无数据源"
+      hint="请确认后端已执行数据源初始化脚本（V3 seed）"
+    />
+  </view>
+
+</view>

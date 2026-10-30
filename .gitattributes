@@ -1,0 +1,23 @@
+# 统一换行符，避免 Windows 下 CRLF 破坏 Linux 脚本
+* text=auto
+
+*.sh   text eol=lf
+*.sql  text eol=lf
+*.yml  text eol=lf
+*.yaml text eol=lf
+*.java text eol=lf
+*.js   text eol=lf
+*.json text eol=lf
+*.wxml text eol=lf
+*.wxss text eol=lf
+*.md   text eol=lf
+*.conf text eol=lf
+*.xml  text eol=lf
+
+# 二进制文件不做转换
+*.png  binary
+*.jpg  binary
+*.gif  binary
+*.jar  binary
+*.woff binary
+*.woff2 binary

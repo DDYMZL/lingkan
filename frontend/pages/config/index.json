@@ -1,0 +1,6 @@
+{
+  "navigationBarTitleText": "配置",
+  "usingComponents": {
+    "state-tag": "/components/state-tag/index"
+  }
+}

@@ -1,0 +1,79 @@
+<view class="page">
+
+  <view class="brand">
+    <view class="brand__mark">玲</view>
+    <view class="brand__name">玲看股息</view>
+    <view class="brand__desc">指标可配置 · 数据源可配置 · 展示可配置 · 数据可追溯</view>
+    <view class="brand__ver">v{{version}} · {{env}} 环境</view>
+  </view>
+
+  <view class="section">
+    <view class="card">
+      <view class="t-section">数据来源</view>
+      <view class="t-hint" style="margin-top: 6rpx;">
+        每条指标都会标注实际来源与数据时间；同一指标可绑定多个来源做交叉验证。
+      </view>
+
+      <view wx:if="{{loading}}" class="loading-wrap">
+        <view class="spinner"></view>
+        <text>加载中…</text>
+      </view>
+
+      <view wx:elif="{{sources.length}}" class="src-list">
+        <view wx:for="{{sources}}" wx:key="providerCode" class="src">
+          <view class="src__row">
+            <text class="src__name">{{item.providerName}}</text>
+            <state-tag status="{{item.healthStatus}}" text="{{item.healthText}}" />
+            <text wx:if="{{item.verified}}" class="tag tag--ok">已实测</text>
+            <text wx:if="{{!item.enabled}}" class="tag tag--muted">未启用</text>
+          </view>
+          <view wx:if="{{item.description}}" class="src__desc">{{item.description}}</view>
+        </view>
+      </view>
+
+      <view wx:else class="status-empty">未获取到数据源信息</view>
+    </view>
+  </view>
+
+  <view class="section">
+    <view class="card">
+      <view class="t-section">使用边界</view>
+      <view class="li">· 所有指标数值均来自后端返回，小程序端不做任何估算与补全。</view>
+      <view class="li">· 口径未确认的指标（如周30 / 周中 / 带内位置）只标注「待确认」，不展示计算结果。</view>
+      <view class="li">· 多数据源之间只做并列对比，不做平均值，差异值以主数据源为基准。</view>
+      <view class="li">· 数据时间与抓取时间均会展示，用于判断数据是否过期。</view>
+    </view>
+  </view>
+
+  <view class="section">
+    <view class="card">
+      <view class="t-section">免责声明</view>
+      <view class="disc">
+        本小程序仅用于个人学习与研究，所有数据来自公开渠道，可能存在延迟、缺失或误差。
+        页面展示的任何内容均不构成投资建议，据此操作风险自担。
+      </view>
+    </view>
+  </view>
+
+  <view class="section">
+    <view class="card card--tight">
+      <view class="kv" bindtap="onCopyBaseUrl">
+        <text class="kv__k">接口地址</text>
+        <text class="kv__v ellipsis">{{baseUrl}}</text>
+      </view>
+      <view class="kv">
+        <text class="kv__k">本地用户标识</text>
+        <text class="kv__v ellipsis">{{userId}}</text>
+      </view>
+      <view class="kv">
+        <text class="kv__k">交易时段</text>
+        <text class="kv__v">{{statusText}}</text>
+      </view>
+      <view class="kv" bindtap="onClearCache">
+        <text class="kv__k">本地缓存</text>
+        <text class="kv__v kv__v--danger">清空 ›</text>
+      </view>
+    </view>
+  </view>
+
+</view>

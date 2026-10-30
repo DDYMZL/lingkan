@@ -1,0 +1,198 @@
+<view class="page page--detail">
+
+  <view wx:if="{{loading}}" class="loading-wrap">
+    <view class="spinner"></view>
+    <text>加载中…</text>
+  </view>
+
+  <view wx:elif="{{failed}}" class="card section">
+    <empty-state
+      icon="⚠️"
+      text="加载失败"
+      hint="请确认后端已启动，且该股票代码存在于股票基础库"
+      action-text="重新加载"
+      bind:action="reload"
+    />
+  </view>
+
+  <block wx:else>
+
+    <!-- 头部：基础信息 + 行情 -->
+    <view class="head" wx:if="{{basic}}">
+      <view class="head__top">
+        <view class="head__titles">
+          <view class="head__name">{{basic.name}}</view>
+          <view class="head__meta">
+            <text>{{basic.code}}</text>
+            <text wx:if="{{basic.exchange}}"> · {{basic.exchange}}</text>
+            <text wx:if="{{basic.board}}"> · {{basic.board}}</text>
+            <text wx:if="{{basic.industry}}"> · {{basic.industry}}</text>
+          </view>
+        </view>
+        <text wx:if="{{basic.st}}" class="tag tag--danger">ST</text>
+      </view>
+
+      <view wx:if="{{board}}" class="head__price">
+        <view class="head__price-main">
+          <text class="head__price-num t-num {{board.tone}}">{{board.latestPrice}}</text>
+          <view class="head__price-chg">
+            <text class="t-num {{board.tone}}">{{board.changePercentText}}</text>
+            <text class="t-num {{board.tone}}">{{board.changeAmountText}}</text>
+          </view>
+        </view>
+      </view>
+      <view wx:else class="head__price head__price--empty">
+        暂无行情数据，不展示估算值
+      </view>
+
+      <view wx:if="{{board}}" class="head__grid">
+        <view class="cell">
+          <text class="cell__label">今开</text>
+          <text class="cell__value">{{board.open}}</text>
+        </view>
+        <view class="cell">
+          <text class="cell__label">最高</text>
+          <text class="cell__value up">{{board.high}}</text>
+        </view>
+        <view class="cell">
+          <text class="cell__label">最低</text>
+          <text class="cell__value down">{{board.low}}</text>
+        </view>
+        <view class="cell">
+          <text class="cell__label">昨收</text>
+          <text class="cell__value">{{board.preClose}}</text>
+        </view>
+        <view class="cell">
+          <text class="cell__label">换手率</text>
+          <text class="cell__value">{{board.turnover}}</text>
+        </view>
+        <view class="cell">
+          <text class="cell__label">成交额</text>
+          <text class="cell__value">{{board.amount}}</text>
+        </view>
+        <view class="cell">
+          <text class="cell__label">成交量</text>
+          <text class="cell__value">{{board.volume}}</text>
+        </view>
+        <view class="cell">
+          <text class="cell__label">总市值</text>
+          <text class="cell__value">{{board.marketCap}}</text>
+        </view>
+      </view>
+
+      <view wx:if="{{board && board.sourceName}}" class="head__source">
+        数据来源：{{board.sourceName}} · 行情时间 {{board.dataTimeText}} · 抓取 {{board.fetchTimeText}}
+      </view>
+    </view>
+
+    <!-- 历史走势 -->
+    <view class="section">
+      <view class="card">
+        <view class="row--between">
+          <view class="t-section">{{chartName || '历史走势'}}</view>
+          <view class="t-hint">{{chartUnit ? '单位：' + chartUnit : ''}}</view>
+        </view>
+
+        <scroll-view wx:if="{{chartOptions.length}}" class="chips" scroll-x enable-flex show-scrollbar="{{false}}">
+          <view
+            wx:for="{{chartOptions}}"
+            wx:key="code"
+            class="chip {{chartMetric === item.code ? 'chip--on' : ''}}"
+            data-code="{{item.code}}"
+            bindtap="onTapChartMetric"
+          >{{item.name}}</view>
+        </scroll-view>
+
+        <view class="ranges">
+          <view
+            wx:for="{{ranges}}"
+            wx:key="code"
+            class="range {{range === item.code ? 'range--on' : ''}}"
+            data-code="{{item.code}}"
+            bindtap="onTapRange"
+          >{{item.name}}</view>
+        </view>
+
+        <view class="chart-wrap">
+          <line-chart points="{{points}}" chart-height="{{260}}" unit="{{chartUnit}}" />
+        </view>
+      </view>
+    </view>
+
+    <!-- 指标分组 -->
+    <view wx:for="{{groups}}" wx:key="category" class="section">
+      <view class="card">
+        <view class="group__head">
+          <text class="t-section">{{item.categoryName}}</text>
+          <text class="t-hint">{{item.items.length}} 项</text>
+        </view>
+
+        <view
+          wx:for="{{item.items}}"
+          wx:for-item="m"
+          wx:key="code"
+          class="metric"
+          hover-class="metric--hover"
+          data-code="{{m.code}}"
+          data-name="{{m.name}}"
+          bindtap="goCompare"
+        >
+          <view class="metric__left">
+            <view class="metric__name-row">
+              <text class="metric__name">{{m.name}}</text>
+              <state-tag wx:if="{{m.abnormal}}" status="{{m.status}}" text="{{m.statusText}}" />
+            </view>
+            <view wx:if="{{m.sourceName}}" class="metric__source">
+              来源 {{m.sourceName}} · {{m.dataTimeText}}
+            </view>
+            <view wx:else class="metric__source metric__source--none">
+              {{m.statusText || '暂无来源信息'}}
+            </view>
+          </view>
+          <view class="metric__right">
+            <text class="metric__value t-num {{m.pending ? 'metric__value--pending' : ''}}">{{m.displayValue}}</text>
+            <text wx:if="{{m.unit}}" class="metric__unit">{{m.unit}}</text>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 分红记录 -->
+    <view class="section">
+      <view class="card">
+        <view class="row--between">
+          <view class="t-section">分红记录</view>
+          <view class="t-hint">现金分红（税前）</view>
+        </view>
+
+        <view wx:if="{{dividends.length}}" class="div-list">
+          <view wx:for="{{dividends}}" wx:key="fiscalYear" class="div-item">
+            <view class="div-item__left">
+              <text class="div-item__year">{{item.fiscalYear}}</text>
+              <text wx:if="{{item.exDate}}" class="div-item__date">除权除息 {{item.exDate}}</text>
+            </view>
+            <view class="div-item__right">
+              <text class="div-item__cash t-num">{{item.cash}}</text>
+              <text class="t-hint">元/股</text>
+            </view>
+          </view>
+        </view>
+        <view wx:else class="div-empty">暂无分红数据（可能尚未采集，不做任何推测）</view>
+      </view>
+    </view>
+
+    <view class="foot-note">
+      指标口径与计算公式由后端指标库统一管理；标注「待确认」的指标口径尚未与您确认，因此不输出计算结果。
+    </view>
+
+    <!-- 底部操作 -->
+    <view class="actionbar">
+      <view class="actionbar__btn {{inWatchlist ? 'actionbar__btn--ghost' : 'actionbar__btn--primary'}}" bindtap="toggleWatch">
+        {{inWatchlist ? '移出自选' : '加入自选'}}
+      </view>
+      <view class="actionbar__btn actionbar__btn--ghost" bindtap="onRefresh">刷新数据</view>
+    </view>
+
+  </block>
+
+</view>

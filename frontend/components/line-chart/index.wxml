@@ -1,0 +1,4 @@
+<view class="lk-chart" style="height: {{chartHeight}}rpx;">
+  <canvas type="2d" id="lkChart" class="lk-chart__canvas"></canvas>
+  <view wx:if="{{!hasData}}" class="lk-chart__empty">暂无历史数据</view>
+</view>

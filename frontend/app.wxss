@@ -1,0 +1,301 @@
+/* ============================================================
+   玲看股息 · 全局样式与设计令牌
+   涨跌配色遵循 A 股习惯：涨红 跌绿
+   ============================================================ */
+
+page {
+  --c-primary: #b3272d;
+  --c-primary-soft: #fbedee;
+  --c-up: #d93a3a;
+  --c-down: #0f9757;
+  --c-flat: #6b7075;
+  --c-bg: #f4f5f7;
+  --c-card: #ffffff;
+  --c-line: #edeef0;
+  --c-text: #17181a;
+  --c-text-2: #6b7075;
+  --c-text-3: #9aa0a6;
+  --c-gold: #b08a48;
+
+  background-color: var(--c-bg);
+  color: var(--c-text);
+  font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Helvetica Neue', Arial, sans-serif;
+  font-size: 28rpx;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+view,
+text,
+scroll-view,
+navigator {
+  box-sizing: border-box;
+}
+
+/* ---------- 布局 ---------- */
+.page {
+  min-height: 100vh;
+  padding-bottom: calc(24rpx + env(safe-area-inset-bottom));
+}
+
+.section {
+  margin: 24rpx 24rpx 0;
+}
+
+.card {
+  background: var(--c-card);
+  border-radius: 20rpx;
+  padding: 28rpx;
+  box-shadow: 0 2rpx 12rpx rgba(23, 24, 26, 0.04);
+}
+
+.card--tight {
+  padding: 20rpx 24rpx;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+}
+
+.row--between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.col {
+  display: flex;
+  flex-direction: column;
+}
+
+.flex-1 {
+  flex: 1;
+  min-width: 0;
+}
+
+.gap-8 {
+  gap: 8rpx;
+}
+
+.gap-12 {
+  gap: 12rpx;
+}
+
+.gap-16 {
+  gap: 16rpx;
+}
+
+.gap-24 {
+  gap: 24rpx;
+}
+
+/* ---------- 文字 ---------- */
+.t-title {
+  font-size: 34rpx;
+  font-weight: 600;
+  letter-spacing: 0.5rpx;
+}
+
+.t-section {
+  font-size: 30rpx;
+  font-weight: 600;
+}
+
+.t-body {
+  font-size: 28rpx;
+}
+
+.t-label {
+  font-size: 24rpx;
+  color: var(--c-text-2);
+}
+
+.t-hint {
+  font-size: 22rpx;
+  color: var(--c-text-3);
+}
+
+.t-num {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum';
+}
+
+.ellipsis {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.up {
+  color: var(--c-up);
+}
+
+.down {
+  color: var(--c-down);
+}
+
+.flat {
+  color: var(--c-flat);
+}
+
+/* ---------- 分隔 ---------- */
+.divider {
+  height: 1rpx;
+  background: var(--c-line);
+  margin: 20rpx 0;
+}
+
+/* ---------- 标签 ---------- */
+.tag {
+  display: inline-flex;
+  align-items: center;
+  height: 32rpx;
+  padding: 0 10rpx;
+  border-radius: 6rpx;
+  font-size: 20rpx;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.tag--ok {
+  color: #0f7a4a;
+  background: #e8f5ee;
+}
+
+.tag--muted {
+  color: var(--c-text-3);
+  background: #f2f3f5;
+}
+
+.tag--warn {
+  color: #9a6212;
+  background: #fdf3e3;
+}
+
+.tag--danger {
+  color: #b3272d;
+  background: #fbedee;
+}
+
+.tag--info {
+  color: #2b5aa6;
+  background: #eaf1fb;
+}
+
+.tag--gold {
+  color: var(--c-gold);
+  background: #faf4e8;
+}
+
+/* ---------- 按钮 ---------- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 68rpx;
+  padding: 0 32rpx;
+  border-radius: 34rpx;
+  font-size: 26rpx;
+  font-weight: 500;
+  background: #f2f3f5;
+  color: var(--c-text);
+}
+
+.btn--primary {
+  background: var(--c-primary);
+  color: #fff;
+}
+
+.btn--ghost {
+  background: transparent;
+  border: 1rpx solid var(--c-line);
+  color: var(--c-text-2);
+}
+
+.btn--block {
+  display: flex;
+  width: 100%;
+}
+
+.btn--sm {
+  height: 52rpx;
+  padding: 0 20rpx;
+  border-radius: 26rpx;
+  font-size: 22rpx;
+}
+
+.btn:active {
+  opacity: 0.75;
+}
+
+/* ---------- 点击态 ---------- */
+.tap:active {
+  background: #f7f8fa;
+}
+
+/* ---------- 加载 / 空态 ---------- */
+.loading-wrap {
+  padding: 120rpx 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--c-text-3);
+  font-size: 24rpx;
+}
+
+.spinner {
+  width: 36rpx;
+  height: 36rpx;
+  margin-right: 14rpx;
+  border: 3rpx solid var(--c-line);
+  border-top-color: var(--c-primary);
+  border-radius: 50%;
+  animation: lk-spin 0.8s linear infinite;
+}
+
+@keyframes lk-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.list-end {
+  padding: 32rpx 0 48rpx;
+  text-align: center;
+  font-size: 22rpx;
+  color: var(--c-text-3);
+}
+
+/* ---------- 指标格子（列表通用） ---------- */
+.metric-cells {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8rpx 28rpx;
+  margin-top: 12rpx;
+}
+
+.metric-cell {
+  display: flex;
+  align-items: baseline;
+  gap: 6rpx;
+  font-size: 22rpx;
+  color: var(--c-text-2);
+}
+
+.metric-cell__value {
+  font-size: 24rpx;
+  color: var(--c-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.metric-cell__value--pending {
+  color: var(--c-text-3);
+}
+
+/* ---------- 数据溯源脚注 ---------- */
+.source-note {
+  margin-top: 10rpx;
+  font-size: 20rpx;
+  color: var(--c-text-3);
+}

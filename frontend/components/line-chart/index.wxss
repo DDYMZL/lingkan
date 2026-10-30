@@ -1,0 +1,22 @@
+.lk-chart {
+  position: relative;
+  width: 100%;
+}
+
+.lk-chart__canvas {
+  width: 100%;
+  height: 100%;
+}
+
+.lk-chart__empty {
+  position: absolute;
+  left: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24rpx;
+  color: #9aa0a6;
+}

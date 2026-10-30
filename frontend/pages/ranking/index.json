@@ -1,0 +1,9 @@
+{
+  "navigationBarTitleText": "全市场",
+  "enablePullDownRefresh": true,
+  "backgroundTextStyle": "dark",
+  "onReachBottomDistance": 80,
+  "usingComponents": {
+    "empty-state": "/components/empty-state/index"
+  }
+}

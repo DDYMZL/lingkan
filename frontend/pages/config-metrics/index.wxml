@@ -1,0 +1,101 @@
+<view class="page">
+
+  <view class="topbar">
+    <view class="topbar__text">
+      指标库共 {{rows.length}} 项。配置会同时影响首页自选、全市场列表与个股详情。
+    </view>
+  </view>
+
+  <view wx:if="{{loading}}" class="loading-wrap">
+    <view class="spinner"></view>
+    <text>加载中…</text>
+  </view>
+
+  <block wx:elif="{{rows.length}}">
+    <view class="list">
+      <block wx:for="{{rows}}" wx:key="metricCode">
+        <view wx:if="{{item.showHeader}}" class="group-title">{{item.categoryName}}</view>
+
+        <view class="mrow {{item.enabled ? '' : 'mrow--off'}}">
+          <view class="mrow__main" data-index="{{index}}" bindtap="onToggleExpand">
+            <view class="mrow__title-row">
+              <text class="mrow__name">{{item.name}}</text>
+              <state-tag wx:if="{{item.pending}}" status="PENDING" text="口径待确认" />
+            </view>
+            <view class="mrow__meta">
+              <text>{{item.metricCode}}</text>
+              <text> · 精度 {{item.precision}}</text>
+              <text wx:if="{{item.unit}}"> · 单位 {{item.unit}}</text>
+            </view>
+          </view>
+          <view class="mrow__right">
+            <view class="mrow__switch" catchtap="noop">
+              <switch
+                checked="{{item.enabled}}"
+                color="#b3272d"
+                data-index="{{index}}"
+                bindchange="onToggleEnabled"
+              />
+            </view>
+            <text class="mrow__caret {{item.expanded ? 'mrow__caret--open' : ''}}">⌄</text>
+          </view>
+        </view>
+
+        <view wx:if="{{item.expanded}}" class="mdetail">
+          <view class="mdetail__row">
+            <text class="mdetail__label">展示位置</text>
+            <view class="positions">
+              <view class="pos {{item.showInHome ? 'pos--on' : ''}}" data-index="{{index}}" data-field="showInHome" catchtap="onTogglePosition">首页</view>
+              <view class="pos {{item.showInWatchlist ? 'pos--on' : ''}}" data-index="{{index}}" data-field="showInWatchlist" catchtap="onTogglePosition">自选</view>
+              <view class="pos {{item.showInDetail ? 'pos--on' : ''}}" data-index="{{index}}" data-field="showInDetail" catchtap="onTogglePosition">详情</view>
+            </view>
+          </view>
+
+          <view class="mdetail__row">
+            <text class="mdetail__label">显示精度</text>
+            <view class="stepper">
+              <view class="stepper__btn" data-index="{{index}}" data-delta="-1" catchtap="onPrecision">−</view>
+              <text class="stepper__num">{{item.precision}}</text>
+              <view class="stepper__btn" data-index="{{index}}" data-delta="1" catchtap="onPrecision">+</view>
+            </view>
+          </view>
+
+          <view class="mdetail__row">
+            <text class="mdetail__label">主数据源</text>
+            <picker
+              mode="selector"
+              range="{{item.sourceNames}}"
+              value="{{item.sourceIndex}}"
+              data-index="{{index}}"
+              bindchange="onSourceChange"
+            >
+              <view class="picker">{{item.sourceNames[item.sourceIndex]}} <text class="picker__caret">›</text></view>
+            </picker>
+          </view>
+
+          <view class="mdetail__row">
+            <text class="mdetail__label">同级排序</text>
+            <view class="mini-actions">
+              <view class="mini-btn" data-index="{{index}}" data-dir="up" catchtap="onMove">上移</view>
+              <view class="mini-btn" data-index="{{index}}" data-dir="down" catchtap="onMove">下移</view>
+            </view>
+          </view>
+
+          <view wx:if="{{item.description}}" class="mdetail__desc">{{item.description}}</view>
+        </view>
+      </block>
+    </view>
+  </block>
+
+  <view wx:else class="card section">
+    <empty-state icon="🧩" text="指标库为空" hint="请确认后端已执行指标库初始化脚本" />
+  </view>
+
+  <view class="savebar">
+    <view class="savebar__btn savebar__btn--ghost" bindtap="onReset">重置默认</view>
+    <view class="savebar__btn savebar__btn--primary {{dirty ? '' : 'savebar__btn--disabled'}}" bindtap="onSave">
+      {{dirty ? '保存配置' : '已是最新'}}
+    </view>
+  </view>
+
+</view>

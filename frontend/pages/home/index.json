@@ -1,0 +1,9 @@
+{
+  "navigationBarTitleText": "玲看股息",
+  "enablePullDownRefresh": true,
+  "backgroundTextStyle": "dark",
+  "usingComponents": {
+    "empty-state": "/components/empty-state/index",
+    "state-tag": "/components/state-tag/index"
+  }
+}
