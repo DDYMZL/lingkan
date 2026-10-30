@@ -19,7 +19,7 @@ class DecimalUtilsTest {
     @Test
     @DisplayName("同比：正常增长")
     void yoyNormal() {
-        assertEquals(new BigDecimal("20.000000000000000"),
+        assertDecimalEquals(new BigDecimal("20"),
                 DecimalUtils.yoy(new BigDecimal("120"), new BigDecimal("100")));
     }
 
@@ -27,7 +27,7 @@ class DecimalUtilsTest {
     @DisplayName("同比：上年同期为负数时按绝对值计算")
     void yoyPreviousNegative() {
         // (50 - (-100)) / |−100| * 100 = 150
-        assertEquals(new BigDecimal("150.00000000000000"),
+        assertDecimalEquals(new BigDecimal("150"),
                 DecimalUtils.yoy(new BigDecimal("50"), new BigDecimal("-100")));
     }
 
@@ -48,7 +48,7 @@ class DecimalUtilsTest {
     @DisplayName("PE-TTM：正常计算")
     void peTtmNormal() {
         BigDecimal pe = DecimalUtils.divide(new BigDecimal("100000000000"), new BigDecimal("4000000000"));
-        assertEquals(new BigDecimal("25.00000000000000"), pe);
+        assertDecimalEquals(new BigDecimal("25"), pe);
     }
 
     @Test
@@ -61,7 +61,7 @@ class DecimalUtilsTest {
     @DisplayName("PE-TTM：净利润为负时得到负值，由上层标记亏损")
     void peTtmNegativeProfit() {
         BigDecimal pe = DecimalUtils.divide(new BigDecimal("100"), new BigDecimal("-50"));
-        assertEquals(new BigDecimal("-2.000000000000000"), pe);
+        assertDecimalEquals(new BigDecimal("-2"), pe);
         assertEquals(-1, pe.signum());
     }
 
@@ -70,7 +70,7 @@ class DecimalUtilsTest {
     void dividendYieldMultiple() {
         BigDecimal cash = new BigDecimal("1.2").add(new BigDecimal("0.8"));
         BigDecimal yield = DecimalUtils.percent(cash, new BigDecimal("40"));
-        assertEquals(new BigDecimal("5.000000000000000"), yield);
+        assertDecimalEquals(new BigDecimal("5"), yield);
     }
 
     @Test
@@ -88,7 +88,7 @@ class DecimalUtilsTest {
     @Test
     @DisplayName("带内位置：正常区间")
     void bandPositionNormal() {
-        assertEquals(new BigDecimal("50.00000000000000"),
+        assertDecimalEquals(new BigDecimal("50"),
                 DecimalUtils.bandPosition(new BigDecimal("15"), new BigDecimal("10"), new BigDecimal("20")));
     }
 
@@ -103,7 +103,7 @@ class DecimalUtilsTest {
     void bandPositionAboveUpper() {
         BigDecimal position = DecimalUtils.bandPosition(new BigDecimal("25"), new BigDecimal("10"),
                 new BigDecimal("20"));
-        assertEquals(new BigDecimal("150.0000000000000"), position);
+        assertDecimalEquals(new BigDecimal("150"), position);
     }
 
     @Test
@@ -119,5 +119,14 @@ class DecimalUtilsTest {
     void roundHalfUp() {
         assertEquals(new BigDecimal("2.35"), DecimalUtils.round(new BigDecimal("2.345"), 2));
         assertEquals(new BigDecimal("-2.35"), DecimalUtils.round(new BigDecimal("-2.345"), 2));
+    }
+
+    /**
+     * 数值相等断言：DecimalUtils 内部使用 MathContext(16) 计算，精确除尽时
+     * 结果不补尾零（标度随运算自然变化），因此断言数值相等而非标度相等。
+     */
+    private void assertDecimalEquals(BigDecimal expected, BigDecimal actual) {
+        assertEquals(0, expected.compareTo(actual),
+                "期望 " + expected + " 实际 " + actual);
     }
 }
