@@ -4,6 +4,27 @@
 
 ---
 
+## [0.7.0] - 2026-10-31
+
+### 新增：首页自选看板聚合接口（spec 010 阶段四）
+
+- 新增 `GET /api/v1/watchlist/board`，返回 `BoardResponse{rows,quoteTime,count}`；看板不分页，行顺序与用户自选 `sortOrder` 一致。
+- `WatchlistService` 抽取 `listStocks` 作为列表与看板的共同查询入口，跳过已删除股票；空自选直接返回空看板，不触发行情与指标计算。
+- 看板行复用 `StockIndicatorService` 与 `BoardRowDto`，保留行情、股息率 TTM、PE TTM、九档目标价及各数据时间；顶层 `quoteTime` 取所有行最新非空行情时间。
+- 分红接口核对完成：`StockController.dividends` 直接返回 `StockDividend`，现有实体已含 `dividendId`/`implementationDate`，无需新增 DTO 或重复映射。
+
+### 测试
+
+- 新增 `WatchlistServiceTest` 2 用例：空看板短路、按自选顺序聚合并取最新行情时间。
+- 后端全量 74 测试通过。
+
+### 文档同步
+
+- `docs/specs/010-home-board/tasks.md`：T4-01、T4-04 标记完成，状态「阶段四完成，阶段五开工」。
+- `.code-docs/`：新增 BoardResponse、WatchlistServiceTest 2 篇，更新 WatchlistService、WatchlistController 2 篇（不入库，见其 CHANGELOG）。
+
+---
+
 ## [0.6.0] - 2026-10-30
 
 ### 新增：计算引擎四件套（spec 010 阶段三）

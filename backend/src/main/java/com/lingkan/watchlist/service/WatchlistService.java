@@ -1,6 +1,7 @@
 package com.lingkan.watchlist.service;
 
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
+import com.lingkan.calculation.StockIndicatorService;
 import com.lingkan.common.exception.BizException;
 import com.lingkan.common.response.ApiCode;
 import com.lingkan.common.response.PageResult;
@@ -11,6 +12,7 @@ import com.lingkan.stock.entity.Stock;
 import com.lingkan.stock.mapper.StockMapper;
 import com.lingkan.stock.service.StockService;
 import com.lingkan.sync.service.DividendFinancialSyncService;
+import com.lingkan.watchlist.dto.BoardResponse;
 import com.lingkan.watchlist.entity.UserWatchlist;
 import com.lingkan.watchlist.mapper.UserWatchlistMapper;
 import org.springframework.stereotype.Service;
@@ -33,24 +35,56 @@ public class WatchlistService {
     private final StockService stockService;
     private final MetricValueService metricValueService;
     private final DividendFinancialSyncService dividendFinancialSyncService;
+    private final StockIndicatorService stockIndicatorService;
 
     public WatchlistService(UserWatchlistMapper watchlistMapper, StockMapper stockMapper,
                             StockService stockService, MetricValueService metricValueService,
-                            DividendFinancialSyncService dividendFinancialSyncService) {
+                            DividendFinancialSyncService dividendFinancialSyncService,
+                            StockIndicatorService stockIndicatorService) {
         this.watchlistMapper = watchlistMapper;
         this.stockMapper = stockMapper;
         this.stockService = stockService;
         this.metricValueService = metricValueService;
         this.dividendFinancialSyncService = dividendFinancialSyncService;
+        this.stockIndicatorService = stockIndicatorService;
     }
 
     public PageResult<StockRowDto> list(String userId, int page, int size) {
+        List<Stock> ordered = listStocks(userId);
+        if (ordered.isEmpty()) {
+            return PageResult.empty(page, size);
+        }
+        Map<String, Map<String, MetricValueDto>> metrics =
+                metricValueService.resolveMetricsBatch(ordered, userId);
+
+        List<StockRowDto> rows = ordered.stream()
+                .map(s -> new StockRowDto(s.getStockCode(), s.getStockName(), s.getExchange(),
+                        s.getIndustry(), Boolean.TRUE.equals(s.getIsSt()),
+                        metrics.getOrDefault(s.getStockCode(), Map.of())))
+                .toList();
+
+        int from = Math.min((Math.max(page, 1) - 1) * size, rows.size());
+        int to = Math.min(from + size, rows.size());
+        return new PageResult<>(rows.subList(from, to), rows.size(), page, size);
+    }
+
+    /** 首页看板：按自选顺序聚合行情、股息率 TTM、PE TTM 与目标价，不分页。 */
+    public BoardResponse board(String userId) {
+        List<Stock> stocks = listStocks(userId);
+        if (stocks.isEmpty()) {
+            return BoardResponse.of(List.of());
+        }
+        return BoardResponse.of(stockIndicatorService.resolveAll(stocks));
+    }
+
+    /** 按 sortOrder 返回有效自选股票；已删除的股票静默跳过。 */
+    private List<Stock> listStocks(String userId) {
         List<UserWatchlist> items = watchlistMapper.selectList(
                 Wrappers.<UserWatchlist>lambdaQuery()
                         .eq(UserWatchlist::getUserId, userId)
                         .orderByAsc(UserWatchlist::getSortOrder));
         if (items.isEmpty()) {
-            return PageResult.empty(page, size);
+            return List.of();
         }
         List<Long> stockIds = items.stream().map(UserWatchlist::getStockId).toList();
         List<Stock> stocks = stockMapper.selectList(
@@ -65,18 +99,7 @@ public class WatchlistService {
                 ordered.add(stock);
             }
         }
-        Map<String, Map<String, MetricValueDto>> metrics =
-                metricValueService.resolveMetricsBatch(ordered, userId);
-
-        List<StockRowDto> rows = ordered.stream()
-                .map(s -> new StockRowDto(s.getStockCode(), s.getStockName(), s.getExchange(),
-                        s.getIndustry(), Boolean.TRUE.equals(s.getIsSt()),
-                        metrics.getOrDefault(s.getStockCode(), Map.of())))
-                .toList();
-
-        int from = Math.min((Math.max(page, 1) - 1) * size, rows.size());
-        int to = Math.min(from + size, rows.size());
-        return new PageResult<>(rows.subList(from, to), rows.size(), page, size);
+        return ordered;
     }
 
     @Transactional

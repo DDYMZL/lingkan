@@ -7,6 +7,7 @@ import com.lingkan.common.util.UserContext;
 import com.lingkan.datasource.provider.QuoteResult;
 import com.lingkan.metrics.service.QuoteSnapshotService;
 import com.lingkan.stock.dto.StockRowDto;
+import com.lingkan.watchlist.dto.BoardResponse;
 import com.lingkan.watchlist.service.WatchlistService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -50,6 +51,12 @@ public class WatchlistController {
     public ApiResponse<PageResult<StockRowDto>> list(@RequestParam(defaultValue = "1") int page,
                                                      @RequestParam(defaultValue = "50") int size) {
         return ApiResponse.ok(watchlistService.list(userId(), page, size));
+    }
+
+    @Operation(summary = "首页自选看板")
+    @GetMapping("/board")
+    public ApiResponse<BoardResponse> board() {
+        return ApiResponse.ok(watchlistService.board(userId()));
     }
 
     @Operation(summary = "加入自选")

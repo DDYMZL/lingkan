@@ -1,7 +1,7 @@
 # 010-首页自选看板与计算引擎 · 任务清单
 
-> 版本：v1.0　日期：2026-10-30
-> 状态：进行中（阶段三完成，阶段四开工）
+> 版本：v1.0　日期：2026-10-31
+> 状态：进行中（阶段四完成，阶段五开工）
 
 ## 阶段一：现状分析（已完成）
 
@@ -35,10 +35,10 @@
 
 ## 阶段四：后端接口
 
-- [ ] T4-01 GET /api/v1/watchlist/board 看板聚合接口
+- [x] T4-01 GET /api/v1/watchlist/board 看板聚合接口
 - [x] T4-02 POST /api/v1/sync/dividend-financial 手动同步接口
 - [x] T4-03 添加自选后异步触发分红/财务即时同步（WatchlistService 联动）
-- [ ] T4-04 分红接口返回补充 dividend_id/implementation_date
+- [x] T4-04 分红接口返回补充 dividend_id/implementation_date（现有 StockDividend 实体已直接返回两字段，无需改代码）
 
 ## 阶段五：行情刷新
 
