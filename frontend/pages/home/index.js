@@ -7,10 +7,6 @@ const watchlistApi = require('../../services/watchlist');
 const format = require('../../utils/format');
 
 const TARGET_YIELDS = ['4.0', '4.5', '5.0', '5.5', '6.0', '6.5', '7.0', '7.5', '8.0'];
-const TARGET_COLUMNS = TARGET_YIELDS.map((value) => ({
-  key: value,
-  label: Number(value) + '%'
-}));
 
 function hasNumber(value) {
   return value !== null && value !== undefined && value !== '' && isFinite(Number(value));
@@ -53,6 +49,7 @@ function buildTargets(item) {
     const value = targets[key];
     return {
       key: key,
+      label: Number(key) + '%',
       value: hasNumber(value) ? Number(value) : null,
       text: priceText(value),
       reached: targetReached(item.price, value)
@@ -66,20 +63,18 @@ Page({
     loadFailed: false,
     rows: [],
     count: 0,
-    targetColumns: TARGET_COLUMNS,
+    expandedMap: {},
     quoteTimeRaw: '',
     quoteTimeText: '--',
     connectionText: '连接中',
     connectionTone: 'muted',
-    refreshingQuotes: false,
-    headerScrollLeft: 0
+    refreshingQuotes: false
   },
 
   onLoad() {
     this._active = true;
     this._hasShown = false;
     this._rowIndexes = {};
-    this._headerScrollLeft = 0;
     this.loadBoard();
     this.openQuoteStream();
   },
@@ -242,13 +237,14 @@ Page({
     }
   },
 
-  onBoardScroll(e) {
-    const left = e.detail.scrollLeft || 0;
-    if (Math.abs(left - this._headerScrollLeft) < 1) {
+  toggleTargets(e) {
+    const code = e.currentTarget.dataset.code;
+    if (!code) {
       return;
     }
-    this._headerScrollLeft = left;
-    this.setData({ headerScrollLeft: left });
+    const patch = {};
+    patch['expandedMap.' + code] = !this.data.expandedMap[code];
+    this.setData(patch);
   },
 
   onRefreshQuotes() {

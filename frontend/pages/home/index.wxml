@@ -25,63 +25,66 @@
 
   <view wx:elif="{{rows.length}}" class="board-shell">
     <view class="board-head">
-      <view class="stock-cell board-cell board-cell--head">
-        <text>股票 / 代码</text>
+      <view class="stock-cell board-cell--head">股票 / 代码</view>
+      <view class="metrics-row metrics-row--head">
+        <view class="metric-cell metric-cell--price board-cell--head">现价</view>
+        <view class="metric-cell metric-cell--change board-cell--head">涨跌幅</view>
+        <view class="metric-cell metric-cell--yield board-cell--head">股息率 TTM</view>
+        <view class="metric-cell metric-cell--pe board-cell--head">PE TTM</view>
       </view>
-      <scroll-view
-        class="board-head-scroll"
-        scroll-x
-        scroll-left="{{headerScrollLeft}}"
-        show-scrollbar="{{false}}"
-      >
-        <view class="metrics-row metrics-row--head">
-          <view class="metric-cell metric-cell--price board-cell--head">现价</view>
-          <view class="metric-cell metric-cell--change board-cell--head">涨跌幅</view>
-          <view class="metric-cell metric-cell--yield board-cell--head">股息率 TTM</view>
-          <view class="metric-cell metric-cell--pe board-cell--head">PE TTM</view>
-          <view
-            wx:for="{{targetColumns}}"
-            wx:key="key"
-            class="metric-cell metric-cell--target board-cell--head"
-          >{{item.label}}目标价</view>
-        </view>
-      </scroll-view>
     </view>
 
-    <scroll-view
-      class="board-body"
-      scroll-x
-      scroll-y
-      enhanced
-      show-scrollbar="{{false}}"
-      bindscroll="onBoardScroll"
-    >
+    <scroll-view class="board-body" scroll-y enhanced show-scrollbar="{{false}}">
       <view class="board-content">
         <view wx:for="{{rows}}" wx:for-item="row" wx:key="code" class="board-row">
-          <view class="stock-cell stock-cell--body" data-code="{{row.code}}" bindtap="goDetail">
-            <view class="stock-cell__name ellipsis">{{row.name}}</view>
-            <view class="stock-cell__meta">
-              <text>{{row.code}}</text>
-              <text wx:if="{{row.exchange}}"> · {{row.exchange}}</text>
+          <view
+            class="board-main {{expandedMap[row.code] ? 'board-main--expanded' : ''}}"
+            data-code="{{row.code}}"
+            bindtap="toggleTargets"
+            hover-class="board-main--hover"
+            hover-stay-time="50"
+          >
+            <view class="stock-cell stock-cell--body">
+              <view class="stock-cell__link" data-code="{{row.code}}" catchtap="goDetail">
+                <view class="stock-cell__name ellipsis">{{row.name}}</view>
+                <view class="stock-cell__meta">
+                  <text>{{row.code}}</text>
+                  <text wx:if="{{row.exchange}}"> · {{row.exchange}}</text>
+                </view>
+                <text wx:if="{{row.statusText}}" class="stock-cell__status">{{row.statusText}}</text>
+              </view>
+              <text class="stock-cell__arrow {{expandedMap[row.code] ? 'stock-cell__arrow--open' : ''}}">›</text>
             </view>
-            <text wx:if="{{row.statusText}}" class="stock-cell__status">{{row.statusText}}</text>
+            <view class="metrics-row metrics-row--body">
+              <view class="metric-cell metric-cell--price t-num {{row.tone}}">{{row.priceText}}</view>
+              <view class="metric-cell metric-cell--change t-num {{row.tone}}">{{row.changeText}}</view>
+              <view class="metric-cell metric-cell--yield metric-cell--emphasis t-num">{{row.yieldText}}</view>
+              <view class="metric-cell metric-cell--pe t-num {{row.peLoss ? 'down' : ''}}">{{row.peText}}</view>
+            </view>
           </view>
-          <view class="metrics-row metrics-row--body">
-            <view class="metric-cell metric-cell--price t-num {{row.tone}}">{{row.priceText}}</view>
-            <view class="metric-cell metric-cell--change t-num {{row.tone}}">{{row.changeText}}</view>
-            <view class="metric-cell metric-cell--yield metric-cell--emphasis t-num">{{row.yieldText}}</view>
-            <view class="metric-cell metric-cell--pe t-num {{row.peLoss ? 'down' : ''}}">{{row.peText}}</view>
-            <view
-              wx:for="{{row.targets}}"
-              wx:for-item="target"
-              wx:key="key"
-              class="metric-cell metric-cell--target t-num {{target.reached ? 'metric-cell--reached' : ''}}"
-            >{{target.text}}</view>
+
+          <view wx:if="{{expandedMap[row.code]}}" class="target-panel">
+            <view class="target-panel__head">
+              <text>九档目标价</text>
+              <text class="target-panel__hint">股息率越高，对应买入价越低</text>
+            </view>
+            <view class="target-grid">
+              <view
+                wx:for="{{row.targets}}"
+                wx:for-item="target"
+                wx:key="key"
+                class="target-item {{target.reached ? 'target-item--reached' : ''}}"
+              >
+                <text class="target-item__label">{{target.label}} 股息率</text>
+                <text class="target-item__value t-num">{{target.text}}</text>
+                <text wx:if="{{target.reached}}" class="target-item__flag">已达标</text>
+              </view>
+            </view>
           </view>
         </view>
       </view>
     </scroll-view>
-    <view class="board-foot">左右滑动查看九档目标价 · 红色底纹表示现价已达目标 · -- 表示数据缺失</view>
+    <view class="board-foot">点击行展开九档目标价 · 红色底纹表示现价已达目标 · -- 表示数据缺失</view>
   </view>
 
   <view wx:elif="{{loadFailed}}" class="card home-state load-failed">
