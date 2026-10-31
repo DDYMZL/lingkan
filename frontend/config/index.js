@@ -7,7 +7,9 @@
  */
 const ENVS = {
   dev: {
-    baseUrl: 'http://localhost:8080',
+    // 开发机局域网 IP：模拟器与真机调试共用（localhost 只有开发者工具能用，真机上指向手机自身）。
+    // 注意：IP 由 DHCP 分配，换网络后若真机连不上，先 ipconfig 核对并同步修改此处与防火墙规则。
+    baseUrl: 'http://192.168.10.115:8080',
     debug: true
   },
   prod: {

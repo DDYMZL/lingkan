@@ -7,8 +7,8 @@
 1. 打开微信开发者工具 → 导入项目
 2. 目录选择 `D:\project\lingkan\frontend`
 3. AppID：使用「测试号」，或把 `project.config.json` 里的 `touristappid` 换成你自己的 AppID
-4. 详情 → 本地设置 → 勾选 **不校验合法域名**（开发阶段必须，否则请求 `http://localhost:8080` 会被拦截）
-5. 确认后端已启动（默认 `http://localhost:8080`）
+4. 详情 → 本地设置 → 勾选 **不校验合法域名**（开发阶段必须，否则请求 `http://192.168.10.115:8080` 会被拦截）
+5. 确认后端已启动（默认监听 `0.0.0.0:8080`；dev 地址为开发机局域网 IP，见下）
 
 ## 二、接口地址
 
@@ -16,13 +16,16 @@
 
 ```js
 const ENVS = {
-  dev:  { baseUrl: 'http://localhost:8080', debug: true },
+  dev:  { baseUrl: 'http://192.168.10.115:8080', debug: true },  // 开发机局域网 IP，模拟器/真机共用
   prod: { baseUrl: 'https://api.lingkan.cn', debug: false }   // 上线前替换
 };
 const ACTIVE_ENV = 'dev';
 ```
 
 请求会拼成 `{baseUrl}/api/v1{path}`，并自动带上 `X-LingKan-User` 头（本地生成的稳定用户标识，不做登录）。
+
+真机调试三要素：手机与开发机同一局域网；`dev.baseUrl` 为开发机局域网 IP（`ipconfig` 核对，DHCP 变动需同步改）；Windows 防火墙放行 8080 入站
+（`New-NetFirewallRule -DisplayName "LingKan backend 8080" -Direction Inbound -Protocol TCP -LocalPort 8080 -Action Allow`）。
 
 ## 三、目录
 
@@ -76,4 +79,4 @@ frontend/
 - 自选拖拽排序未实现（后端 `PUT /watchlist/sort` 已就绪）
 - 全市场条件筛选 UI 未做（后端 `metricFilters` 已支持）
 - 图表仅折线图，无 K 线
-- 真机调试需要 HTTPS 域名，`localhost` 仅开发者工具可用
+- 真机调试走开发机局域网 IP（需同局域网 + 防火墙放行 8080）；对外发布仍需 HTTPS 域名
