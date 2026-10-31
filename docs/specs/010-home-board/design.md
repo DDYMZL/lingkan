@@ -1,6 +1,6 @@
 # 010-首页自选看板与计算引擎 · 技术设计
 
-> 版本：v1.2
+> 版本：v1.3
 > 日期：2026-10-31
 > 前置文档：`spec.md`、`docs/database/schema.md`、`docs/specs/004-data-source/source-research.md`、`docs/specs/007-history/spec.md`
 
@@ -188,8 +188,10 @@ record BoardRowDto(String stockCode, String stockName, String exchange,
 
 ```java
 // 输入：按日期升序的前复权周线收盘价序列（本周已按 §3.5 规则覆盖为实时价）+ 参数（maShort=60, maLong=120, bollN=20, bollK=2）
-// 输出：record WeeklyIndicators(BigDecimal ma60w, ma120w, bollUpper, bollMiddle, bollLower,
-//                               String status, String reason, int barCount, LocalDate lastBarDate)
+// 输出：record WeeklyIndicators(BigDecimal maShort, maLong, bollUpper, bollMiddle, bollLower,
+//                               WeeklyStatus status, String reason, int barCount, LocalDate lastBarDate)
+//   命名说明：计算器内部用 maShort/maLong 表达「短/长周均线」两个参数化周期，
+//   DTO/WS 层才映射为 ma60w/ma120w 对外键名（配置改周期不影响对外契约）。
 // MA(N)  = 最近 N 根周收盘价算术平均（HALF_UP 2 位）；可用根数 < N → 该值 null
 // BOLL   = 中轨 MA(bollN)；σ = 样本标准差（除以 N−1）；上轨 = 中轨 + K×σ；下轨 = 中轨 − K×σ
 // 状态   = NORMAL（至少一个指标算出）/ INSUFFICIENT（根数不足）/ MISSING（无周线数据）
@@ -223,6 +225,7 @@ record BoardRowDto(String stockCode, String stockName, String exchange,
 - 股本事件：仅对「已实施（`DividendStatusRules`）+ 除息日存在 + 比例 > 0」的方案生成 BONUS/TRANSFER 事件。
 - 数据源失败语义：Provider 失败返回 null（MISSING），同步服务据此计失败并保留旧数据；成功无记录返回空列表。
 - 写 `data_sync_logs`（`sync_type = DIVIDEND / FINANCIAL`）。
+- 即时同步有界重试（v1.3 增补）：互斥标志对定时/手动提交「拒绝即返回 accepted=false」是正确的，但添加自选的突发连加会被第二次提交拒绝，导致新股票要等到下一个定时窗口（分红为次日 05:30）才有数。故 `syncAsync` 走 `ImmediateSyncRetry`：在 `dataSyncExecutor` 上最多重试 3 次、间隔 5s，被受理即停；提交抛异常不重试。重试只发生在异步线程，绝不阻塞 HTTP 请求线程。
 
 ### 4.4 `EastMoneyWeeklyKlineProvider` + `WeeklyKlineSyncService`（v1.2 新增）
 
@@ -254,6 +257,7 @@ https://push2his.eastmoney.com/api/qt/stock/kline/get
 - 触发：① 交易日按 `refresh-interval-ms`（默认 60 分钟）定时；② 添加自选成功后异步即时同步；③ 手动 `POST /api/v1/sync/weekly-kline`。
 - 写入：整窗口 upsert（按 `(stock_id, trade_date, adjustment_type, source_code)` 先查后插/更新，openGauss 不用 `ON CONFLICT`），每次覆盖最近 `bars-limit` 根——前复权基准随最新除权事件漂移，禁止只增量追加。
 - 留痕：`data_sync_logs`，`sync_type = WEEKLY_KLINE`；批次互斥沿用 `AtomicBoolean`，被拒绝的提交返回 `accepted=false`。
+- 即时同步有界重试（v1.3 增补）：添加自选触发的 `syncAsync` 与分红/财务共用 `ImmediateSyncRetry`（3 次、间隔 5s、异步线程），避免突发连加时第二只股票被互斥拒绝后长期 `--`（周线定时仅交易日每小时跑，周末添加要等到周一）。
 - 失败降级：单只失败只记日志并保留库内旧数据，周线列显示 `--`，不影响其余列与整页。
 
 ## 五、行情轮询与 WebSocket
@@ -307,16 +311,17 @@ lingkan:
 ```text
 pages/home/index.wxml
 ├─ 顶栏：我的自选 + 添加股票 + 刷新状态（行情时间）
-├─ 表格（v1.2：横向滚动 + 首列固定）
+├─ 表格（v1.2：横向滚动 + 首列固定；v1.3 修订为双向 scroll-view）
 │   ├─ 首列（sticky left）：股票名称 / 代码 · 交易所 / 行业小字
 │   └─ 右侧 9 列（scroll-x）：现价 | 涨跌幅 | 股息率 TTM | PE TTM | 60周 | 120周 | 周上 | 周中 | 周下
-└─ 纵向：页面级滚动（不再用固定高度内层 scroll-y），表头 sticky top
+└─ 纵向：同一个 scroll-view 内 scroll-y（固定高度），表头 sticky top
     └─ 行内展开区：4% | 4.5% | 5% | 5.5% | 6% | 6.5% 六档目标价（3×2 网格）
 ```
 
 - 横向滚动：整表放在一个 `scroll-view scroll-x` 内，表头与表体同处该滚动容器，列宽用同一份 WXSS 变量保证对齐；首列与表头用 `position: sticky`（首列 `left: 0`、表头 `top: 0`，交叉单元格两者都加）固定。
-- 纵向滚动交给页面（`enablePullDownRefresh` 仍可用），避免嵌套双向 scroll-view 的手势冲突；`.board-body` 不再写死 `calc(100vh - ...)` 高度。
-- 展开状态：使用独立 `expandedMap[stockCode]`，切换只更新该键，不重排或重取 rows；展开区完整展示六档目标价，名称/代码仍可单独进入详情。
+- **v1.3 修订（实现时裁决）**：纵向滚动不再交给页面。原因：`overflow-x: auto` 的容器自身会成为 `position: sticky` 的滚动端口（scrollport），表头的 `sticky top` 只能相对该容器生效；若纵向滚动发生在页面级，横滚容器内的表头将无法吸顶，十列表格滑下去就看不见列名，不可用。故改为**单个双向 `scroll-view scroll-x scroll-y` + 固定高度**（`.board-scroll { height: calc(100vh - 280rpx) }`），表头吸顶与首列吸左在同一 scrollport 内同时成立；下拉刷新让位于该容器的手势（v1.2 原稿「纵向交给页面」作废）。
+- 表宽写死 `1314rpx` 并在 WXSS 留档：WXSS 对 rpx 在 CSS 变量与 `calc()` 内的换算不可靠，列宽合计（220+118+128+150+118+116×5）直接写死更稳。
+- 展开状态：使用独立 `expandedMap[stockCode]`，切换只更新该键，不重排或重取 rows；展开区完整展示六档目标价，名称/代码仍可单独进入详情；展开区 `sticky left` 且宽度等于可视宽度，横滚时不随表格移出。
 - 颜色：涨红跌绿（沿用规范）；股息率统一强调色；目标价格达标（现价 ≤ 目标价）高亮该格；PE 亏损显示「亏损」、缺失显示 `--`；周线五列纯数值右对齐，缺失 `--`，不做涨跌着色（它们是价位参考线，不是涨跌）。
 - 每行独立 `setData`（`rows[{{index}}].price` 路径），WS 推送只更新变化行（含周线五列），不整页重渲染。
 

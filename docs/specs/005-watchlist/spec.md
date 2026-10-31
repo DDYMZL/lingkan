@@ -21,7 +21,7 @@
 | FR-5.5 | 自选列表的指标列完全由 `user_metric_preferences.show_in_watchlist` 决定 |
 | FR-5.6 | 支持自选股批量刷新行情（异步） |
 | FR-5.7 | 重复添加同一股票必须幂等，不产生重复记录 |
-| FR-5.8 | 首页看板使用 `GET /api/v1/watchlist/board` 全量快照，行顺序沿用自选 `sort_order`；看板固定字段与九档目标价由 spec 010 定义，不改变本 Spec 动态指标列表接口 |
+| FR-5.8 | 首页看板使用 `GET /api/v1/watchlist/board` 全量快照，行顺序沿用自选 `sort_order`；看板固定字段与六档目标价由 spec 010 定义（v1.2 起；周线五列见 spec 010 v1.3），不改变本 Spec 动态指标列表接口 |
 
 ## 三、业务规则
 

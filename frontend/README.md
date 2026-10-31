@@ -37,6 +37,7 @@ frontend/
 │   ├── request.js         请求封装（Promise + 统一错误）
 │   ├── format.js          时间/数值/涨跌色/状态标签
 │   ├── metrics.js         动态指标组装（核心）
+│   ├── nav.js             页面跳转（个股详情带名称，供详情页同步设标题）
 │   └── user.js            本地 user_id
 ├── services/              6 个后端接口映射
 ├── components/            state-tag / empty-state / line-chart
@@ -48,7 +49,7 @@ frontend/
 
 | 页面 | 路径 | 说明 |
 |---|---|---|
-| 自选（tab） | `pages/home/index` | 市场概览 + 自选股 + 交易时段 |
+| 自选（tab） | `pages/home/index` | 十列横滚看板（首列固定 + 表头吸顶）+ 行内展开六档目标价 + 行情 WS 增量 |
 | 全市场（tab） | `pages/ranking/index` | 分页列表 + 关键词/交易所筛选 + 按指标排序 |
 | 配置（tab） | `pages/config/index` | 配置入口 + 数据源健康状态 |
 | 我的（tab） | `pages/about/index` | 版本、数据来源、使用边界、免责 |
@@ -62,7 +63,7 @@ frontend/
 ## 五、三条不可违背的展示原则
 
 1. **不估算**：后端 `available === false` 时只显示空态，不补值、不推测。
-2. **不编口径**：`calculationStatus === 'PENDING'` 的指标（周30 / 周中 / 周60 / 周下 / 周上 / 带内位置 / 近 3 天创 60 日新高低）只显示「待确认」，不输出任何计算结果。
+2. **不编口径**：`calculationStatus === 'PENDING'` 的指标（周30 / 带内位置 / 近 3 天创 60 日新高低）只显示「待确认」，不输出任何计算结果。周60/周120/周上/周中/周下已于 2026-10-31 经用户确认口径（V6 迁移转 READY），首页正常展示数值。
 3. **可追溯**：每个指标都展示来源与数据时间，点击进入多源对比，不做平均。
 
 ## 六、动态指标
@@ -74,7 +75,14 @@ frontend/
 
 用户在「指标配置」页做的改动，前端代码零改动即可生效。
 
-## 七、已知限制
+## 七、首页看板布局与导航栏约定
+
+- 首页表格是**单个双向 `scroll-view`（scroll-x + scroll-y + 固定高度）**：`overflow-x` 容器自身就是 `position: sticky` 的滚动端口，表头吸顶只能相对它生效，所以纵向滚动不能交给页面，否则十列表格滑下去就看不见列名。表头 `sticky top`、首列与展开区 `sticky left`，首列背景不透明以遮住滑过的列。
+- 表宽写死 `1314rpx`（首列 220 + 四列 118/128/150/118 + 周线五列 116×5）：WXSS 里 rpx 放进 CSS 变量或 `calc()` 换算不可靠，列宽合计直接写死并在 `pages/home/index.wxss` 留档。
+- 列定义只有一份 `COLUMNS` 数组（`pages/home/index.js`），表头与表体同源渲染；WebSocket 增量只 patch `rows[i].cells`，不整页重排。
+- 跳转个股详情统一走 `utils/nav.goStockDetail(code, name)`：名称随路由下发，详情页 `onLoad` 同步设置导航栏标题；详情页异步回调写标题前检查 `onUnload` 置的 `detached` 标记，防止用户秒退时把个股名写到栈顶其它页面（实测会污染首页标题）。
+
+## 八、已知限制
 
 - 自选拖拽排序未实现（后端 `PUT /watchlist/sort` 已就绪）
 - 全市场条件筛选 UI 未做（后端 `metricFilters` 已支持）

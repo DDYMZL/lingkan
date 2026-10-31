@@ -1,7 +1,7 @@
 # 010-首页自选看板与计算引擎 · 任务清单
 
-> 版本：v1.2　日期：2026-10-31
-> 状态：阶段一~六B 已完成（v1.1）；阶段六C（v1.2 列扩展）进行中
+> 版本：v1.3　日期：2026-10-31
+> 状态：阶段一~六C 已完成（v1.3 含周线五列落地、运行时验证与文档同步）
 
 ## 阶段一：现状分析（已完成）
 
@@ -73,15 +73,15 @@
 ## 阶段六 C：v1.2 列扩展（2026-10-31 用户裁决 ⑥~⑩）
 
 - [x] T6C-01 Spec 先行：010 spec/design/acceptance/tasks 升 v1.2；007 Q7-2/3/4/6/7/8 记录确认结论；008 §4/§5.1 恢复横滚 + 十列
-- [ ] T6C-02 行业列：`BoardRowDto.industry` + `StockIndicatorService` 填充 `stocks.industry`
-- [ ] T6C-03 目标价档位收窄：`application.yml` 与 `TargetPriceCalculator.DEFAULT_TARGET_YIELDS` 改六档，前端档位数组与 3×2 展开区同步，更新既有单测
-- [ ] T6C-04 V6 迁移：`stock_weekly_quotes` 表 + `week_120` 新增登记 + `week_60/week_upper/week_middle/week_lower` 转 READY 写入公式
-- [ ] T6C-05 `WeeklyKlineProvider` + `WeeklyBar` DTO + `EastMoneyWeeklyKlineProvider`（klt=102/fqt=1，真实报文单测）
-- [ ] T6C-06 `StockWeeklyQuote` 实体 + Mapper
-- [ ] T6C-07 `WeeklyIndicatorCalculator`（MA60/MA120 + 周线布林 20/2 + 本周实时价覆盖 + 非正收盘价防护）+ 单测
-- [ ] T6C-08 `WeeklyKlineSyncService` + 调度（交易日 60 分钟）+ 手动接口 + 添加自选异步触发 + `data_sync_logs`（WEEKLY_KLINE）
-- [ ] T6C-09 看板与 WS 接入：批量读周线（无 N+1）、`BoardRowDto` 五个周线字段 + `weeklyStatus`/`weeklyDataTime`、`QuoteUpdateMessage` 同步下发
-- [ ] T6C-10 前端横向滚动表格：首列 sticky、表头 sticky、十列对齐、周线列渲染与 WS 行级更新、缺失 `--`
-- [ ] T6C-11 验证：后端全量测试通过；重启后 V6 生效；手动触发周线同步并 curl 核对至少一只股票的 MA60 与东财原始周线手算一致；开发者工具 automator 验证布局与展开
-- [ ] T6C-12 文档同步：changelog、`docs/database/schema.md`、`source-research.md`（周 K 实测 + 前复权负价坑）、`frontend/README.md`、`.code-docs`
+- [x] T6C-02 行业列：`BoardRowDto.industry` + `StockIndicatorService` 填充 `stocks.industry`
+- [x] T6C-03 目标价档位收窄：`application.yml` 与 `TargetPriceCalculator.DEFAULT_TARGET_YIELDS` 改六档，前端档位数组与 3×2 展开区同步，更新既有单测
+- [x] T6C-04 V6 迁移：`stock_weekly_quotes` 表 + `week_120` 新增登记 + `week_60/week_upper/week_middle/week_lower` 转 READY 写入公式
+- [x] T6C-05 `WeeklyKlineProvider` + `WeeklyBar` DTO + `EastMoneyWeeklyKlineProvider`（klt=102/fqt=1，真实报文单测）
+- [x] T6C-06 `StockWeeklyQuote` 实体 + Mapper
+- [x] T6C-07 `WeeklyIndicatorCalculator`（MA60/MA120 + 周线布林 20/2 + 本周实时价覆盖 + 非正收盘价防护）+ 单测
+- [x] T6C-08 `WeeklyKlineSyncService` + 调度（交易日 60 分钟）+ 手动接口 + 添加自选异步触发 + `data_sync_logs`（WEEKLY_KLINE）
+- [x] T6C-09 看板与 WS 接入：批量读周线（无 N+1）、`BoardRowDto` 五个周线字段 + `weeklyStatus`/`weeklyDataTime`、`QuoteUpdateMessage` 同步下发
+- [x] T6C-10 前端横向滚动表格：首列 sticky、表头 sticky、十列对齐、周线列渲染与 WS 行级更新、缺失 `--`
+- [x] T6C-11 验证：后端全量测试通过；重启后 V6 生效；手动触发周线同步并 curl 核对至少一只股票的 MA60 与东财原始周线手算一致；开发者工具 automator 验证布局与展开
+- [x] T6C-12 文档同步：changelog、`docs/database/schema.md`、`source-research.md`（周 K 实测 + 前复权负价坑）、`frontend/README.md`、`.code-docs`
 - [ ] T6C-13 两次 commit + push origin/main，报告 hash 与推送结果

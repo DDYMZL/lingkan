@@ -4,6 +4,35 @@
 
 ---
 
+## [0.13.0] - 2026-10-31
+
+### 变更：首页看板新增五个周线价位列（60周 / 120周 / 周上 / 周中 / 周下），spec 010 升 v1.3
+
+- 口径（用户 2026-10-31 裁决 ⑥~⑩）：周线取东财周K `klt=102` 前复权 `fqt=1`，**含本周未收盘**（本周 bar 的收盘价仅在「最新周线日期与行情时间同属一个 ISO 周」时用实时行情价覆盖）；60周/120周 = MA(周线收盘价, 60/120)；周上/周中/周下 = 周线布林轨 N=20、K=2，σ 取**样本**标准差（除以 N−1，对齐通达信/同花顺），N/K 走配置 `lingkan.board.weekly.boll-n/boll-k` 不写死。
+- 存储：V6 新增 `stock_weekly_quotes`（唯一键 `stock_id+trade_date+adjustment_type+source_code`，`adjustment_type` 固定 QFQ）；每次同步整窗口覆盖 `lmt=130`——前复权基准随最新除权事件漂移，禁止增量追加；新增指标登记 `week_120`，`week_60/week_upper/week_middle/week_lower` 转 READY 并写入公式；`week_30` 与带内位置仍未确认，保持 PENDING 不实现（铁律 6）。
+- 同步与下发：`WeeklyKlineSyncService`（批次互斥 + `data_sync_logs` `WEEKLY_KLINE`）+ 交易日每小时调度 + 手动 `POST /api/v1/sync/weekly-kline` + 添加自选即时触发；看板批量读周线（无 N+1）；`BoardRowDto` 扩到 23 个组件（增 ma60w/ma120w/weekUpper/weekMiddle/weekLower/weeklyStatus/weeklyDataTime）；WebSocket 增量同步下发周线五值，缺失为显式 `null`（前端 `--`，禁止 0 冒充）。
+- 前端：首页表格改为**单个双向 scroll-view（scroll-x + scroll-y + 固定高度）**。原因：`overflow-x` 容器自身是 `position: sticky` 的滚动端口，表头吸顶只能相对它生效，纵向滚动交给页面会导致十列表格滑下去看不见列名；表头 `sticky top`、首列与展开区 `sticky left`、首列背景不透明；表宽写死 `1314rpx`（WXSS 的 rpx 在 CSS 变量与 `calc()` 内换算不可靠，列宽合计留档于 WXSS 注释）；列定义收敛为单一 `COLUMNS` 数组，表头表体同源渲染，WS 增量只 patch `rows[i].cells`。
+- 防护：窗口内任一前复权收盘价 ≤ 0（东财前复权对高分红老股会产生负价，实测 600519 2001 年周线 fqt=1 为 −312.68）时五列全部 `MISSING`，不用 0 或估值填充。
+
+### 修复（本轮联调/运行时验证发现，随本功能一并提交）
+
+- `fix(sync)`：添加自选触发的即时同步被批次互斥拒绝后原实现直接丢弃，突发连加的第二只股票要等下一个定时窗口（周线仅交易日每小时、分红/财务次日 05:30）才有数，周末添加甚至要等到周一。新增 `ImmediateSyncRetry`：在 `dataSyncExecutor` 上有界重试 3 次、间隔 5s，被受理即停、抛异常不重试，周线与分红/财务两条即时同步共用；重试只发生在异步线程，不阻塞 HTTP。实测连加两只，5 秒后第二只周线列已有值。
+- `fix(miniapp)`：个股详情在异步回调里 `wx.setNavigationBarTitle`，用户秒退时回调落在栈顶其它页面——实测首页标题被污染成个股名。改为名称随路由下发（新增 `utils/nav.goStockDetail(code, name)`，home/ranking/search 三入口统一），详情页 `onLoad` 同步设标题；异步回退路径以 `onUnload` 置的 `detached` 标记兜底。
+
+### 验证
+
+- 后端 `mvn test`：**131 个测试，Failures 0、Errors 0**（新增 WeeklyIndicatorCalculatorTest、EastMoneyWeeklyKlineProviderTest、WeeklyKlineSyncServiceTest、WeeklyKlineSyncSchedulerTest、ImmediateSyncRetryTest；更新 WatchlistServiceTest、QuotePushServiceTest、TradingSessionCheckerTest、QuoteSyncSchedulerTest）。
+- 周线数值独立复算：用东财原始周K 在 Node 侧复算 MA60/MA120/布林（样本 σ），与后端看板输出逐分一致——600519：1346.11 / 1378.23 / 1397.89 / 1277.72 / 1157.56；000001：10.76 / 10.48 / 12.17 / 11.05 / 9.93。
+- 生产链路：重启后迁移日志 `已执行迁移脚本: V6__weekly_kline_board.sql`；手动周线同步 4/4 成功；同批二次同步「新增 0，更新 0」，证明整窗 upsert 幂等、fetch_time 不被无谓改写。
+- 小程序运行时验证（`cli auto` + miniprogram-automator，脚本 `.tools/mpauto/verify-home.js`，不入库）：**37 项断言全过**——十列表头顺序、3×10 单元格、周线五列与后端实测一致、缺失 `--`、表宽 683px > 容器 378px、横滚 305px 后首列仍贴左缘且非固定列左移、纵滚 275px 后表头仍贴顶、六档展开/折叠且无 7%/7.5%/8%、名称 catchtap 进详情并带 code、缺失行六档全 `--`；截图留档 `.tools/mpauto/*.png`。
+- 前端 `node --check` 五个改动文件通过。
+
+### 文档同步
+
+- `docs/specs/010-home-board/{design,acceptance,tasks}.md` 升 v1.3：design §7.1 记录双向 scroll-view 裁决与表宽写死原因、§3.6 记录计算器字段 maShort/maLong 与对外 ma60w/ma120w 的映射、§4.3/§4.4 记录即时同步有界重试；`docs/specs/004-data-source/source-research.md` 增周K 实测表与前复权负价坑；`docs/database/schema.md` 增 §3.16 `stock_weekly_quotes`；`frontend/README.md` 增第七节「首页看板布局与导航栏约定」并修正 PENDING 指标清单；`.code-docs` 同步（不入库）。
+
+---
+
 ## [0.12.0] - 2026-10-31
 
 ### 变更：看板加行业列，目标价档位由九档收窄为六档（spec 010 v1.2 裁决 ⑥⑦）

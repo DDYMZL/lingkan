@@ -299,6 +299,25 @@ data_providers ──► data_sync_logs
 
 > 该表由内置迁移器 `DbMigrationRunner` 维护，用于替代 Flyway 的版本管理职责。**不使用 Flyway 的原因见技术选型报告 R1。**
 
+### 3.16 `stock_weekly_quotes` 周线行情（V6 新增）
+
+| 字段 | 类型 |
+|---|---|
+| `id` | BIGSERIAL PK |
+| `stock_id` | BIGINT NOT NULL |
+| `trade_date` | DATE NOT NULL（该周最后一个交易日；含本周未收盘 bar） |
+| `open_price` / `close_price` / `high_price` / `low_price` | NUMERIC(20,4) |
+| `volume` / `amount` | NUMERIC(24,4) |
+| `adjustment_type` | VARCHAR(16) NOT NULL（固定 `QFQ`） |
+| `source_code` | VARCHAR(32) NOT NULL（`eastmoney`） |
+| `fetch_time` | TIMESTAMP NOT NULL |
+| `created_at` | TIMESTAMP DEFAULT CURRENT_TIMESTAMP |
+
+约束：`UNIQUE (stock_id, trade_date, adjustment_type, source_code)`
+索引：`idx_weekly_quotes_stock_date (stock_id, trade_date)`
+
+> 口径：东财周 K（`klt=102`）前复权（`fqt=1`），每次同步整窗口覆盖（lmt=130）——前复权基准随最新除权事件漂移，历史 bar 的复权值会变，故不做增量合并；窗口内任一收盘价 ≤ 0（前复权负价）时周线指标全部不输出（`MISSING`），不用 0 或估值填充（铁律 6）。
+
 ## 四、openGauss 兼容性说明
 
 | 语法 | 是否可用 | 说明 |
