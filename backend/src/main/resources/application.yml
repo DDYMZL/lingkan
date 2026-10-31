@@ -127,8 +127,9 @@ lingkan:
     request-interval-ms: 500
   # 首页看板（目标价格档位等）
   board:
-    # 目标股息率档位（%），对应看板 9 档目标价列
-    target-yields: 4.0,4.5,5.0,5.5,6.0,6.5,7.0,7.5,8.0
+    # 目标股息率档位（%），对应看板展开区的六档目标价列
+    # v1.2（2026-10-31 用户裁决）：移除 7.0/7.5/8.0，与 TargetPriceCalculator.DEFAULT_TARGET_YIELDS 保持一致
+    target-yields: 4.0,4.5,5.0,5.5,6.0,6.5
   datasource:
     # 单用户配置维度，未登录时使用该用户标识（不做注册登录体系）
     default-user-id: local-user

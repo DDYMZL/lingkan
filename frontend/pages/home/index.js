@@ -6,7 +6,8 @@ const boardApi = require('../../services/board');
 const watchlistApi = require('../../services/watchlist');
 const format = require('../../utils/format');
 
-const TARGET_YIELDS = ['4.0', '4.5', '5.0', '5.5', '6.0', '6.5', '7.0', '7.5', '8.0'];
+/** 目标价档位与后端 targetPrices 的键一致（spec 010 v1.2：六档 4.0%~6.5%）。 */
+const TARGET_YIELDS = ['4.0', '4.5', '5.0', '5.5', '6.0', '6.5'];
 
 function hasNumber(value) {
   return value !== null && value !== undefined && value !== '' && isFinite(Number(value));
@@ -117,6 +118,8 @@ Page({
           code: item.stockCode,
           name: item.stockName || item.stockCode,
           exchange: item.exchange || '',
+          // 行业缺失显示 --，不由前端推断或补「其他」（spec 010 FR-10.12）
+          industryText: item.industry || '--',
           priceValue: hasNumber(item.price) ? Number(item.price) : null,
           priceText: priceText(item.price),
           changeText: changeText(item.changePercent),

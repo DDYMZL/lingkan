@@ -118,7 +118,7 @@ class QuoteSyncSchedulerTest {
     }
 
     private static BoardRowDto row(String code, BigDecimal price) {
-        return new BoardRowDto(code, code, "SH", price, null, null, null, null,
+        return new BoardRowDto(code, code, "SH", null, price, null, null, null, null,
                 null, "N_A", null, null, null, null, "NORMAL");
     }
 }

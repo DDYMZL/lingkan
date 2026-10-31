@@ -4,6 +4,28 @@
 
 ---
 
+## [0.12.0] - 2026-10-31
+
+### 变更：看板加行业列，目标价档位由九档收窄为六档（spec 010 v1.2 裁决 ⑥⑦）
+
+- `BoardRowDto` 新增 `industry` 字段，由 `StockIndicatorService` 直接取 `stocks.industry`（东财单股快照 f127 随行情顺带补齐）；空白归一为 `null`，经 Jackson 非空序列化后字段缺省，前端统一渲染 `--`——不推断、不填「其他」（铁律 6）。
+- 目标股息率档位移除 7%/7.5%/8%：`application.yml` 的 `lingkan.board.target-yields` 与 `TargetPriceCalculator.DEFAULT_TARGET_YIELDS` 同步收窄为 4.0/4.5/5.0/5.5/6.0/6.5 六档，两者保持一致；前端 `pages/home/index.js` 的档位数组与展开区文案（六档目标价、3×2 网格）同步，档位数量仍以后端返回键为准，未写死。
+- 用户同轮撤回的「过去 5 年平均分红」「去年的分红」两项**未实现、未登记指标**，已在 spec 010 FR-10.15 与差异表 D9 记录，避免后续重复设计。
+- Spec 先行（铁律 1）：010 spec/design/acceptance/tasks 升 v1.2；007-history 升 v1.1，记录 Q7-2/Q7-3/Q7-4/Q7-6/Q7-7/Q7-8 的用户确认结论并把 `week_60`/`week_upper`/`week_middle`/`week_lower` 由 `PENDING` 转 `READY`、新增 `week_120` 口径（实现见 0.13.0）；Q7-1（周30）与 Q7-5（带内位置）仍未确认，保持 `PENDING` 不实现。008 升 v1.2，首页恢复横向滚动表格 + 首列固定。
+
+### 验证
+
+- 后端全量 `mvn test`：83 个测试，Failures 0、Errors 0，`BUILD SUCCESS`（工具链 `.tools/apache-maven-3.9.16` + `.tools/jdk-25.0.5+8`，离线本地仓库）。
+- `TargetPriceCalculatorTest` 更新为六档断言，并显式断言 7.0/7.5/8.0 三档不再出现在返回键中。
+- 前端 `node --check pages/home/index.js` 通过。
+- 看板接口行业字段实测结果见提交说明（重启后端后 curl 校验）。
+
+### 文档同步
+
+- `docs/specs/010-home-board/{spec,design,acceptance,tasks}.md`、`docs/specs/007-history/spec.md`、`docs/specs/008-mini-program-ui/spec.md`。
+
+---
+
 ## [0.11.0] - 2026-10-31
 
 ### 变更：dev 环境 baseUrl 改为开发机局域网 IP（真机调试可用）

@@ -114,6 +114,7 @@ public class StockIndicatorService {
                 stock.getStockCode(),
                 stock.getStockName(),
                 stock.getExchange(),
+                blankToNull(stock.getIndustry()),
                 quote == null ? null : quote.latestPrice(),
                 quote == null ? null : quote.changePercent(),
                 quote == null ? null : quote.changeAmount(),
@@ -164,5 +165,10 @@ public class StockIndicatorService {
 
     private static BigDecimal round2(BigDecimal value) {
         return value == null ? null : value.setScale(2, RoundingMode.HALF_UP);
+    }
+
+    /** 行业空白归一为 null：Jackson 非空序列化后字段缺省，前端统一渲染 --（不填「其他」）。 */
+    private static String blankToNull(String value) {
+        return value == null || value.isBlank() ? null : value;
     }
 }

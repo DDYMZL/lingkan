@@ -36,7 +36,7 @@ class QuotePushServiceTest {
         when(session.getId()).thenReturn("session-1");
         service.afterConnectionEstablished(session);
 
-        BoardRowDto row = new BoardRowDto("600519", "贵州茅台", "SH",
+        BoardRowDto row = new BoardRowDto("600519", "贵州茅台", "SH", "白酒Ⅱ",
                 new BigDecimal("1400.00"), new BigDecimal("1.20"), new BigDecimal("16.60"),
                 new BigDecimal("30.00"), new BigDecimal("2.14"), new BigDecimal("20.00"), "NORMAL",
                 Map.of("4.0", new BigDecimal("750.00")), LocalDateTime.of(2026, 10, 30, 10, 0),

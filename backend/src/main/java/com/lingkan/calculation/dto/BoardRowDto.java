@@ -14,6 +14,7 @@ import java.util.Map;
  * @param stockCode              股票代码
  * @param stockName              股票名称
  * @param exchange               交易所（SH / SZ / BJ）
+ * @param industry               所属行业（{@code stocks.industry}，东财 f127）；缺失为 null，前端展示 --
  * @param price                  现价
  * @param changePercent          涨跌幅（%）
  * @param changeAmount           涨跌额（元）
@@ -31,6 +32,7 @@ public record BoardRowDto(
         String stockCode,
         String stockName,
         String exchange,
+        String industry,
         BigDecimal price,
         BigDecimal changePercent,
         BigDecimal changeAmount,

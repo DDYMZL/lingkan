@@ -51,6 +51,7 @@
                   <text>{{row.code}}</text>
                   <text wx:if="{{row.exchange}}"> · {{row.exchange}}</text>
                 </view>
+                <view class="stock-cell__industry ellipsis">{{row.industryText}}</view>
                 <text wx:if="{{row.statusText}}" class="stock-cell__status">{{row.statusText}}</text>
               </view>
               <text class="stock-cell__arrow {{expandedMap[row.code] ? 'stock-cell__arrow--open' : ''}}">›</text>
@@ -65,7 +66,7 @@
 
           <view wx:if="{{expandedMap[row.code]}}" class="target-panel">
             <view class="target-panel__head">
-              <text>九档目标价</text>
+              <text>六档目标价</text>
               <text class="target-panel__hint">股息率越高，对应买入价越低</text>
             </view>
             <view class="target-grid">
@@ -84,7 +85,7 @@
         </view>
       </view>
     </scroll-view>
-    <view class="board-foot">点击行展开九档目标价 · 红色底纹表示现价已达目标 · -- 表示数据缺失</view>
+    <view class="board-foot">点击行展开六档目标价 · 红色底纹表示现价已达目标 · -- 表示数据缺失</view>
   </view>
 
   <view wx:elif="{{loadFailed}}" class="card home-state load-failed">
@@ -97,7 +98,7 @@
     <empty-state
       icon="+"
       text="还没有自选股"
-      hint="搜索并添加 A 股后，可在这里查看实时股息率、PE 与九档目标价"
+      hint="搜索并添加 A 股后，可在这里查看实时股息率、PE 与六档目标价"
       action-text="添加股票"
       bind:action="goSearch"
     />

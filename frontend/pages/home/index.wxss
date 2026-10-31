@@ -194,6 +194,14 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* 行业：东财 f127 原文（如「银行Ⅱ」），缺失显示 -- */
+.stock-cell__industry {
+  max-width: 132rpx;
+  margin-top: 4rpx;
+  color: var(--c-text-3);
+  font-size: 18rpx;
+}
+
 .stock-cell__status {
   display: block;
   margin-top: 5rpx;

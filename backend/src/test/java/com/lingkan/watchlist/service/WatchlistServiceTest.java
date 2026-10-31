@@ -101,7 +101,7 @@ class WatchlistServiceTest {
     }
 
     private static BoardRowDto row(String code, LocalDateTime quoteTime) {
-        return new BoardRowDto(code, code, "SH", null, null, null, null, null,
+        return new BoardRowDto(code, code, "SH", null, null, null, null, null, null,
                 null, "N_A", null, quoteTime, null, null, "STALE");
     }
 }

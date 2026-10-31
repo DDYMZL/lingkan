@@ -1,8 +1,8 @@
 # 010-首页自选看板与计算引擎 · 技术设计
 
-> 版本：v1.1
+> 版本：v1.2
 > 日期：2026-10-31
-> 前置文档：`spec.md`、`docs/database/schema.md`、`docs/specs/004-data-source/source-research.md`
+> 前置文档：`spec.md`、`docs/database/schema.md`、`docs/specs/004-data-source/source-research.md`、`docs/specs/007-history/spec.md`
 
 ## 一、总体架构
 
@@ -11,16 +11,18 @@
                        ├─► QuoteSyncScheduler（15s 轮询，仅交易时段）
 东方财富 datacenter ────┤        │
   ├─ 分红送配 RPT_SHAREBONUS_DET │   └─► QuoteSnapshotService（Caffeine 缓存 + stock_quotes 落库）
-  └─ 财报 RPT_LICO_FN_CPD ────► DividendFinancialSyncService（定时+事件触发）│
+  ├─ 财报 RPT_LICO_FN_CPD ────► DividendFinancialSyncService（定时+事件触发）│
+  └─ 周K kline klt=102 fqt=1 ─► WeeklyKlineSyncService（交易日 60min + 添加自选 + 手动）
                                           │
-                              ┌───────────┴────────────┐
-                              ▼                        ▼
-                        stock_dividends          stock_financials
-                        stock_share_events             │
-                              │                        │
-                              ▼                        ▼
+                              ┌───────────┴────────────┬──────────────────┐
+                              ▼                        ▼                  ▼
+                        stock_dividends          stock_financials   stock_weekly_quotes
+                        stock_share_events             │                  │
+                              │                        │                  │
+                              ▼                        ▼                  ▼
                     calculation 包（计算引擎，BigDecimal）
   DividendYieldCalculator / TargetPriceCalculator / PeTtmCalculator / ShareBasisAdjuster
+                              / WeeklyIndicatorCalculator（v1.2 新增）
                               │
                               ▼
               StockIndicatorService ──► GET /api/v1/watchlist/board（HTTP 兜底）
@@ -66,6 +68,43 @@ A 股实际无拆股/并股，但表结构预留；第一版实际数据源只�
 
 V5 内对 `metric_definitions` 中 `dividend_yield_ttm` 的 `pending_questions` 追加「TTM 窗口按 implementation_date 筛选、缺失时 ex_dividend_date 兜底；历史分红按 stock_share_events 换算当前股本口径」。
 
+### 2.4 V6 迁移（v1.2 新增：周线表 + 周线指标登记）
+
+```sql
+CREATE TABLE IF NOT EXISTS stock_weekly_quotes (
+    id              BIGSERIAL PRIMARY KEY,
+    stock_id        BIGINT        NOT NULL,
+    trade_date      DATE          NOT NULL,   -- 周线所属周末交易日（东财返回口径）
+    open_price      NUMERIC(20,4),
+    close_price     NUMERIC(20,4),
+    high_price      NUMERIC(20,4),
+    low_price       NUMERIC(20,4),
+    volume          NUMERIC(24,4),            -- 手
+    amount          NUMERIC(24,4),            -- 元
+    adjustment_type VARCHAR(16)   NOT NULL,   -- QFQ（前复权）
+    source_code     VARCHAR(32)   NOT NULL,
+    fetch_time      TIMESTAMP     NOT NULL,
+    created_at      TIMESTAMP     DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT uk_weekly_quotes UNIQUE (stock_id, trade_date, adjustment_type, source_code)
+);
+CREATE INDEX IF NOT EXISTS idx_weekly_quotes_stock_date ON stock_weekly_quotes (stock_id, trade_date);
+```
+
+指标登记（只新增/更新登记项，不删除历史行，铁律 5）：
+
+| metric_code | 处理 | calculation_status | calculation_expression |
+|---|---|---|---|
+| `week_120` | **新增** | `READY` | `MA(周线收盘价, 120)` 前复权周线 |
+| `week_60` | 更新（原 PENDING） | `READY` | `MA(周线收盘价, 60)`，与 `ma_60w` 同口径 |
+| `week_middle` | 更新（原 PENDING） | `READY` | `MA(周线收盘价, 20)`（周线布林中轨，N=20） |
+| `week_upper` | 更新（原 PENDING） | `READY` | `周中 + 2 × STD(周线收盘价, 20)`（样本标准差） |
+| `week_lower` | 更新（原 PENDING） | `READY` | `周中 − 2 × STD(周线收盘价, 20)`（样本标准差） |
+| `week_30` | **不动** | `PENDING` | Q7-1 未确认，本轮不实现 |
+| `band_position` | **不动** | `PENDING` | Q7-5 未确认，本轮不实现 |
+| `industry` | 已存在 | `READY` | 直接取 `stocks.industry`，看板列复用，不新建指标 |
+
+`week_60` 与既有 `ma_60w` 是同一口径的两个登记项：实现只有一份（`WeeklyIndicatorCalculator`），看板取 `week_60`/`week_120` 命名以对齐用户口语「60周/120周」；不删除 `ma_30w`/`ma_60w`（历史登记保留）。
+
 ## 三、计算引擎（`com.lingkan.calculation` 新包）
 
 职责单一、无 Controller 依赖、全部 `BigDecimal`，可独立单元测试。
@@ -98,7 +137,7 @@ adjusted = cash × Π(1 / (1 + bonus_ratio + transfer_ratio))   // BONUS/TRANSFE
 
 ```java
 // 目标股息率配置（application.yml，可扩展）：
-// lingkan.board.target-yields: 4.0,4.5,5.0,5.5,6.0,6.5,7.0,7.5,8.0
+// lingkan.board.target-yields: 4.0,4.5,5.0,5.5,6.0,6.5      // v1.2 起六档（移除 7.0/7.5/8.0）
 // 目标价格 = TTM每股现金分红 × 100 / 目标股息率（HALF_UP 2 位）
 // 输入无效（分红≤0 或 yield≤0）→ 该档 null（对外展示 --，禁止 0 冒充）
 ```
@@ -106,7 +145,9 @@ adjusted = cash × Π(1 / (1 + bonus_ratio + transfer_ratio))   // BONUS/TRANSFE
 目标价格依赖 TTM 每股分红（非行情），仅分红数据变化时重算；实现上按需惰性计算 + 短缓存。
 
 > 说明：配置键落地为 `lingkan.board.target-yields`（跟随项目 `lingkan.*` 配置惯例，
-> 经 `BoardProperties` 绑定；未配置时回退 4.0~8.0 九档）。
+> 经 `BoardProperties` 绑定）；未配置时回退默认档位。**v1.2：默认档位与配置值同步收窄为
+> 4.0%~6.5% 六档**（用户 2026-10-31 裁决 ⑦），`TargetPriceCalculator.DEFAULT_TARGET_YIELDS`
+> 与 `application.yml` 必须保持一致，前端展开区按后端返回的键渲染，不写死档位数量。
 
 ### 3.4 `PeTtmCalculator`
 
@@ -121,20 +162,43 @@ adjusted = cash × Π(1 / (1 + bonus_ratio + transfer_ratio))   // BONUS/TRANSFE
 
 ### 3.5 `StockIndicatorService`（聚合）
 
-向看板接口输出 `BoardRowDto`：
+向看板接口输出 `BoardRowDto`（v1.2 字段）：
 
 ```java
 record BoardRowDto(String stockCode, String stockName, String exchange,
+        String industry,                              // v1.2 新增：stocks.industry，缺失 null
         BigDecimal price, BigDecimal changePercent, BigDecimal changeAmount,
         BigDecimal annualDividendPerShare, BigDecimal dividendYieldTtm,
         BigDecimal peTtm, String peStatus,            // NORMAL / LOSS / N_A
-        Map<String, BigDecimal> targetPrices,          // {"4.0":75.00,...}
+        BigDecimal ma60w, BigDecimal ma120w,          // v1.2 新增：60周/120周均线
+        BigDecimal weekUpper, BigDecimal weekMiddle, BigDecimal weekLower,   // v1.2 新增：周线布林轨
+        String weeklyStatus,                          // NORMAL / INSUFFICIENT / MISSING
+        LocalDate weeklyDataTime,                     // 最新周线所属周末交易日
+        Map<String, BigDecimal> targetPrices,          // v1.2 起六档 {"4.0":75.00,...,"6.5":...}
         LocalDateTime quoteTime, LocalDate dividendDataTime, LocalDate financialDataTime,
         String dataStatus)                             // NORMAL / STALE / SUSPENDED
 ```
 
 - `MetricValueService` 重构为调用上述计算器（保持现有详情页/市场页行为不变），计算器不反向依赖 Metric 模块。
 - 数值缺失一律 `null`（Jackson 非空序列化 → 字段缺省），前端统一渲染 `--`；禁止输出 0 冒充。
+- 周线取数：`resolveAll` 用**一次** `in (stockIds)` 批量查询 `stock_weekly_quotes` 后在内存分组，避免 N+1；单只路径（`resolve` / `resolveQuoteUpdate`）按 `stock_id` 单查。看板路径**只读本地表**，不触发上游请求（FR-10.14）。
+- 本周未收盘覆盖：若最新周线日期与行情 `data_time` 同属一个 ISO 周，则用行情最新价替换该根周线收盘价后再算（MA 与 BOLL 均只用收盘价），使周线五指标随行情变化；不同 ISO 周则不覆盖（避免用今天的价覆盖上周的线）。
+
+### 3.6 `WeeklyIndicatorCalculator`（v1.2 新增）
+
+```java
+// 输入：按日期升序的前复权周线收盘价序列（本周已按 §3.5 规则覆盖为实时价）+ 参数（maShort=60, maLong=120, bollN=20, bollK=2）
+// 输出：record WeeklyIndicators(BigDecimal ma60w, ma120w, bollUpper, bollMiddle, bollLower,
+//                               String status, String reason, int barCount, LocalDate lastBarDate)
+// MA(N)  = 最近 N 根周收盘价算术平均（HALF_UP 2 位）；可用根数 < N → 该值 null
+// BOLL   = 中轨 MA(bollN)；σ = 样本标准差（除以 N−1）；上轨 = 中轨 + K×σ；下轨 = 中轨 − K×σ
+// 状态   = NORMAL（至少一个指标算出）/ INSUFFICIENT（根数不足）/ MISSING（无周线数据）
+// 异常防护：窗口内任一收盘价 ≤ 0（东财前复权对高分红老股会产生负价）→ 该窗口指标全部 null，
+//           status = INSUFFICIENT 并在 reason 说明「周线数据异常（前复权收盘价非正）」
+// 纯计算、无 Spring 依赖、可独立单元测试（铁律 11）
+```
+
+参数经 `BoardProperties.weekly`（`lingkan.board.weekly.*`）绑定：`ma-short`、`ma-long`、`boll-n`、`boll-k`、`bars-limit`（默认 130，≥ ma-long + 余量）、`refresh-interval-ms`（默认 3600000）、`enabled`。改数值不改代码（铁律 2）。
 
 ## 四、数据源适配器（`datasource.provider.impl`）
 
@@ -159,6 +223,38 @@ record BoardRowDto(String stockCode, String stockName, String exchange,
 - 股本事件：仅对「已实施（`DividendStatusRules`）+ 除息日存在 + 比例 > 0」的方案生成 BONUS/TRANSFER 事件。
 - 数据源失败语义：Provider 失败返回 null（MISSING），同步服务据此计失败并保留旧数据；成功无记录返回空列表。
 - 写 `data_sync_logs`（`sync_type = DIVIDEND / FINANCIAL`）。
+
+### 4.4 `EastMoneyWeeklyKlineProvider` + `WeeklyKlineSyncService`（v1.2 新增）
+
+**接口（2026-10-31 真实请求验证，非推测）**：
+
+```text
+https://push2his.eastmoney.com/api/qt/stock/kline/get
+  ?secid={1|0}.{code}          # 沪 1. / 深与北 0.，复用 EastMoneyProvider.secid()
+  &fields1=f1,f2,f3,f4,f5,f6
+  &fields2=f51,f52,f53,f54,f55,f56,f57,f58
+  &klt=102                      # 102 = 周线
+  &fqt=1                        # 1 = 前复权
+  &end=20500101&lmt={bars-limit}
+```
+
+实测样本：平安银行 `secid=0.000001` 返回 `dktotal=8507`，`data.klines` 为字符串数组，
+逗号分隔字段序 `日期,开盘,收盘,最高,最低,成交量(手),成交额(元),振幅(%)`，例如
+`"2026-10-30,11.15,11.64,11.67,11.13,8397163,9584245034.51,4.82"`；日期为该周最后一个交易日。
+贵州茅台 `secid=1.600519` 2001 年周线在 `fqt=0` 为 34.51 等正值、`fqt=1` 为 **−312.68 等负值**，
+证实前复权会对累计分红极大的老股产生负价（计算器必须防护，见 §3.6）。
+
+**Provider 契约**：与 `DividendProvider` 一致——失败（非 200 / 网络 / 解析异常）返回 `null`（MISSING），
+成功但无 K 线返回空列表；输出 `WeeklyBar(tradeDate, open, close, high, low, volume, amount)`。
+超时 10s，UA 与其他东财适配器一致，限流沿用 500ms/次。
+
+**同步服务**（结构对齐 `DividendFinancialSyncService`）：
+
+- 范围：全部用户自选股并集（`WatchlistService.listAllFavoriteStocks()`）。
+- 触发：① 交易日按 `refresh-interval-ms`（默认 60 分钟）定时；② 添加自选成功后异步即时同步；③ 手动 `POST /api/v1/sync/weekly-kline`。
+- 写入：整窗口 upsert（按 `(stock_id, trade_date, adjustment_type, source_code)` 先查后插/更新，openGauss 不用 `ON CONFLICT`），每次覆盖最近 `bars-limit` 根——前复权基准随最新除权事件漂移，禁止只增量追加。
+- 留痕：`data_sync_logs`，`sync_type = WEEKLY_KLINE`；批次互斥沿用 `AtomicBoolean`，被拒绝的提交返回 `accepted=false`。
+- 失败降级：单只失败只记日志并保留库内旧数据，周线列显示 `--`，不影响其余列与整页。
 
 ## 五、行情轮询与 WebSocket
 
@@ -186,8 +282,8 @@ lingkan:
 ### 5.2 WebSocket（新增依赖 `spring-boot-starter-websocket`）
 
 - 端点 `/ws/stocks/favorites`（单用户 `local-user`，无鉴权复杂体系）。
-- 消息：`{"type":"STOCK_QUOTE_UPDATE","data":[{stockCode,price,changePercent,dividendYieldTtm,peTtm,quoteTime}]}`。
-- 推送前经计算引擎重算股息率与 PE（目标价格不随行情重算）。
+- 消息：`{"type":"STOCK_QUOTE_UPDATE","data":[{stockCode,price,changePercent,dividendYieldTtm,peTtm,ma60w,ma120w,weekUpper,weekMiddle,weekLower,weeklyStatus,weeklyDataTime,quoteTime,dataStatus}]}`。
+- 推送前经计算引擎重算股息率、PE 与**周线五指标**（v1.2：本周未收盘周线收盘价用实时价覆盖，故周线值随行情变化，必须随推送下发；目标价格不随行情重算，仍不在推送负载内）。
 - 连接断开不阻塞 HTTP 兜底；小程序重连后调 board 接口取全量快照。
 
 ## 六、后端接口
@@ -199,9 +295,10 @@ lingkan:
 | GET | `/api/v1/stocks/search` | 沿用现有 |
 | GET | `/api/v1/stocks/{code}/dividends` | 沿用现有（返回补充 dividend_id/implementation_date） |
 | POST | `/api/v1/sync/dividend-financial` | **新增**：手动触发分红/财务同步（异步返回 taskId） |
+| POST | `/api/v1/sync/weekly-kline` | **新增（v1.2）**：手动触发自选股周线同步（异步返回 jobId，可传 stockCodes 限定范围） |
 | WS | `/ws/stocks/favorites` | **新增**：行情推送 |
 
-响应沿用 `ApiResponse{code,message,data}` 规范。`targetPrices` 为字符串键 map：`{"4.0":75.00,...,"8.0":37.50}`。
+响应沿用 `ApiResponse{code,message,data}` 规范。`targetPrices` 为字符串键 map：v1.2 起六档 `{"4.0":..,"4.5":..,"5.0":..,"5.5":..,"6.0":..,"6.5":..}`。
 
 ## 七、前端首页改造（`pages/home/index`）
 
@@ -210,16 +307,18 @@ lingkan:
 ```text
 pages/home/index.wxml
 ├─ 顶栏：我的自选 + 添加股票 + 刷新状态（行情时间）
-├─ 固定表头：股票/代码 | 现价 | 涨跌幅 | 股息率 TTM | PE TTM
-└─ 纵向滚动表体：
-    ├─ 默认五列行（点击行切换 expandedMap[stockCode]）
-    └─ 行内展开区：4% | 4.5% | ... | 8% 九档目标价（3×3 网格）
+├─ 表格（v1.2：横向滚动 + 首列固定）
+│   ├─ 首列（sticky left）：股票名称 / 代码 · 交易所 / 行业小字
+│   └─ 右侧 9 列（scroll-x）：现价 | 涨跌幅 | 股息率 TTM | PE TTM | 60周 | 120周 | 周上 | 周中 | 周下
+└─ 纵向：页面级滚动（不再用固定高度内层 scroll-y），表头 sticky top
+    └─ 行内展开区：4% | 4.5% | 5% | 5.5% | 6% | 6.5% 六档目标价（3×2 网格）
 ```
 
-- 纵向滚动：表头位于表体滚动区外，表体仅保留 `scroll-y`；默认五列总宽适配手机屏幕，不再要求横向滚动或 sticky 首列。
-- 展开状态：使用独立 `expandedMap[stockCode]`，切换只更新该键，不重排或重取 rows；展开区完整展示九档目标价，名称/代码仍可单独进入详情。
-- 颜色：涨红跌绿（沿用规范）；股息率统一强调色；目标价格达标（现价 ≤ 目标价）高亮该格；PE 亏损显示「亏损」、缺失显示 `--`。
-- 每行独立 `setData`（`stock[{{index}}].price` 路径），WS 推送只更新变化行，不整页重渲染。
+- 横向滚动：整表放在一个 `scroll-view scroll-x` 内，表头与表体同处该滚动容器，列宽用同一份 WXSS 变量保证对齐；首列与表头用 `position: sticky`（首列 `left: 0`、表头 `top: 0`，交叉单元格两者都加）固定。
+- 纵向滚动交给页面（`enablePullDownRefresh` 仍可用），避免嵌套双向 scroll-view 的手势冲突；`.board-body` 不再写死 `calc(100vh - ...)` 高度。
+- 展开状态：使用独立 `expandedMap[stockCode]`，切换只更新该键，不重排或重取 rows；展开区完整展示六档目标价，名称/代码仍可单独进入详情。
+- 颜色：涨红跌绿（沿用规范）；股息率统一强调色；目标价格达标（现价 ≤ 目标价）高亮该格；PE 亏损显示「亏损」、缺失显示 `--`；周线五列纯数值右对齐，缺失 `--`，不做涨跌着色（它们是价位参考线，不是涨跌）。
+- 每行独立 `setData`（`rows[{{index}}].price` 路径），WS 推送只更新变化行（含周线五列），不整页重渲染。
 
 ### 7.2 数据流
 
@@ -232,19 +331,23 @@ pages/home/index.wxml
 
 ### 7.3 性能
 
-- 默认 50 行 × 5 列以原生 view 渲染；九档目标价只在对应行展开时渲染，WS 高频更新仅命中变化行路径。
-- 目标价格仅在 board 快照中计算（分红变化才变），WS 消息不携带目标价格；展开状态与行情数据分离，推送不折叠已展开行。
+- 默认 50 行 × 10 列以原生 view 渲染；六档目标价只在对应行展开时渲染，WS 高频更新仅命中变化行路径。
+- 目标价格仅在 board 快照中计算（分红变化才变），WS 消息不携带目标价格；周线五列随 WS 下发（本周口径下它们随实时价变化）。
+- 展开状态与行情数据分离，推送不折叠已展开行。
+- 横向滚动容器内元素数量 = 行数 × 11 个单元格；50 行约 550 个 view，仍在小程序可接受范围；若后续自选超过 100 只，需引入虚拟列表（本版不做）。
 
 ## 八、测试设计（对应方案第十一节）
 
 | 类 | 用例 |
 |---|---|
 | DividendYieldCalculatorTest | 3 元/50 元=6%；48 元=6.25%；55 元≈5.45%；价格 0/null；12 个月窗口内外；未实施/预案剔除；同年度多次；跨年度；重复公告去重；股本送转后换算（10转10 后 3 元 → 1.5 元口径） |
-| TargetPriceCalculatorTest | 3 元 → 4%:75.00 / 5%:60.00 / 6%:50.00 / 7%:42.86 / 8%:37.50；分红为 0/null；目标档位为空 |
+| TargetPriceCalculatorTest | 3 元 → 4%:75.00 / 5%:60.00 / 6%:50.00 / 6.5%:46.15；**默认档位为六档 4.0~6.5（v1.2）**；分红为 0/null；目标档位为空 |
 | PeTtmCalculatorTest | 500 亿/50 亿=10；600 亿→12；400 亿→8；利润 0→null；利润负→LOSS；不足 4 季度→null；期号不连续→null |
 | ShareBasisAdjusterTest | 送股 10送10、转增 10转5、送+转叠加、拆股 1拆2、并股 2并1、同日事件、无事件 |
+| **WeeklyIndicatorCalculatorTest** | MA60/MA120 精确值（构造等差序列手算比对）；根数 59/119 → null 且 status=INSUFFICIENT；BOLL20 中轨=MA20、上下轨=中轨±2σ（手算样本）；σ 为样本标准差（n−1）验证；收盘价含 0/负值 → 全部 null；空列表/null → MISSING；乱序输入内部排序；本周覆盖生效（同 ISO 周）与不生效（跨 ISO 周）两分支 |
+| **EastMoneyWeeklyKlineProviderTest** | 固定真实报文样本解析（8 根周线，字段序 日期/开/收/高/低/量/额/振幅）；`data` 为 null → 空列表；非法 JSON → null；klines 缺字段/日期非法 → 跳过该行 |
 | ProviderTest | 适配器字段解析（真实报文样本固定化） |
-| 集成（手动） | 行情轮询、WS 推送/断线重连、多用户共享缓存、停牌/非交易时段 |
+| 集成（手动） | 行情轮询、WS 推送/断线重连、多用户共享缓存、停牌/非交易时段、周线同步与看板列展示 |
 
 宪法铁律 11 要求的异常分支全部覆盖。
 
@@ -259,6 +362,13 @@ pages/home/index.wxml
 7. 小程序首页表格
 8. 联调验收 + 文档同步（010/005/008 + changelog）+ commit/push
 
+**v1.2 增量（2026-10-31）**：
+
+9. 行业列 + 目标价档位收窄六档（后端 DTO/配置/默认值 + 前端）→ 测试 → 文档 → commit/push
+10. V6 迁移（周线表 + 指标登记）→ 东财周 K 适配器（真实报文单测）→ 周线同步服务/调度/手动接口
+11. `WeeklyIndicatorCalculator` + 单测 → 看板聚合与 WS 负载接入
+12. 首页横向滚动表格 + 首列固定 + 五个周线列 → 开发者工具运行时验证 → 文档同步 → commit/push
+
 每完成一个功能：运行测试 → 更新文档 → 立即 commit 并 push origin/main（宪法铁律 13）。
 
 ## 十、风险与限制
@@ -269,3 +379,7 @@ pages/home/index.wxml
 | 股本换算口径 | 送转事件同日归属、拆并股预留字段未经 A 股真实数据验证，以单元测试 + 真实样本核对 |
 | WebSocket 单实例 | 单实例部署下会话在本进程；多实例需引入 Redis pub/sub（不在本版范围） |
 | 15 秒非数据源保证 | 轮询间隔为发起间隔，实际时效以接口返回 `data_time` 为准并在首页标注 |
+| **前复权负价（v1.2）** | 东财 `fqt=1` 对累计分红极大的老股返回负价格（实测茅台 2001 周线 −312.68）。计算窗口只取最近 130 根，通常不触及；仍强制「窗口内任一收盘价 ≤ 0 → 指标 `--`」防护，避免输出无意义数值 |
+| **前复权基准漂移（v1.2）** | 每次除权除息后全部历史前复权值整体重算，因此每次同步整窗口覆盖 upsert；库内早于窗口的旧行基准过期，计算只读最近 `bars-limit` 根，不跨基准混用 |
+| **周线时效（v1.2）** | 已收盘周线每日至多变化一次；本周未收盘部分由实时价覆盖，故盘中数值随行情变化，但本周的最高/最低/成交量按最近一次同步（默认 60 分钟）为准——布林与均线只用收盘价，不受影响 |
+| **十列可读性（v1.2）** | 横向滚动 + 首列固定后一屏仍只能看到约 5~6 列，需滑动查看周线列；这是用户在「横滚 / 两行指标 / 放展开区」三选项中明确选择的结果 |

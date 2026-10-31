@@ -13,8 +13,9 @@ import java.util.Map;
  *
  * <p>目标价格 = TTM 每股现金分红 × 100 / 目标股息率（HALF_UP 保留 2 位）。
  *
- * <p>目标档位（默认 4.0%~8.0% 共 9 档，步长 0.5）来自配置
- * {@code lingkan.board.target-yields}，可扩展。目标价格依赖 TTM 每股分红
+ * <p>目标档位（v1.2 起默认 4.0%~6.5% 共 6 档，步长 0.5）来自配置
+ * {@code lingkan.board.target-yields}，可扩展。用户 2026-10-31 裁决移除
+ * 7%/7.5%/8% 三档；配置值与默认值必须保持一致。目标价格依赖 TTM 每股分红
  * （非行情），仅分红数据变化时重算（实现上按需惰性计算）。
  *
  * <p>输入无效（分红为空/非正，或某档收益率非正）→ 该档价格为 null
@@ -22,11 +23,10 @@ import java.util.Map;
  */
 public final class TargetPriceCalculator {
 
-    /** 未配置目标档位时的默认值：4.0%~8.0%，步长 0.5 */
+    /** 未配置目标档位时的默认值：4.0%~6.5% 共 6 档，步长 0.5（spec 010 v1.2 裁决 ⑦） */
     public static final List<BigDecimal> DEFAULT_TARGET_YIELDS = List.of(
             new BigDecimal("4.0"), new BigDecimal("4.5"), new BigDecimal("5.0"),
-            new BigDecimal("5.5"), new BigDecimal("6.0"), new BigDecimal("6.5"),
-            new BigDecimal("7.0"), new BigDecimal("7.5"), new BigDecimal("8.0"));
+            new BigDecimal("5.5"), new BigDecimal("6.0"), new BigDecimal("6.5"));
 
     private TargetPriceCalculator() {
     }
