@@ -1,7 +1,7 @@
 package com.lingkan.sync.controller;
 
 import com.lingkan.common.response.ApiResponse;
-import com.lingkan.sync.dto.DividendFinancialSyncRequest;
+import com.lingkan.sync.dto.StockSyncRequest;
 import com.lingkan.sync.dto.SyncAcceptVo;
 import com.lingkan.sync.service.DividendFinancialSyncService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -32,7 +32,7 @@ public class DividendFinancialSyncController {
 
     @Operation(summary = "手动触发分红/财务同步（异步）")
     @PostMapping("/dividend-financial")
-    public ApiResponse<SyncAcceptVo> sync(@RequestBody(required = false) DividendFinancialSyncRequest request) {
+    public ApiResponse<SyncAcceptVo> sync(@RequestBody(required = false) StockSyncRequest request) {
         List<String> codes = request == null ? null : request.stockCodes();
         if (codes == null || codes.isEmpty()) {
             return ApiResponse.ok(syncService.submitForWatchlist("MANUAL"));

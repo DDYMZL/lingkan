@@ -23,7 +23,7 @@
 
   <block wx:elif="{{results.length}}">
     <view class="card card--tight result-list">
-      <view wx:for="{{results}}" wx:key="code" class="result" data-code="{{item.code}}" bindtap="goDetail" hover-class="result--hover">
+      <view wx:for="{{results}}" wx:key="code" class="result" data-code="{{item.code}}" data-name="{{item.name}}" bindtap="goDetail" hover-class="result--hover">
         <view class="result__main">
           <view class="result__head">
             <text class="result__name ellipsis">{{item.name}}</text>

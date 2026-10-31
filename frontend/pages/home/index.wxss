@@ -98,6 +98,14 @@
   margin: 0 24rpx;
 }
 
+/* ============================================================
+   十列横向滚动表格（spec 010 v1.2 / design §7.1）
+   列宽（rpx）：股票 220 + 现价 118 + 涨跌幅 128 + 股息率 150 + PE 118
+              + 周线五列 116×5 = 580 → 表宽 1314
+   WXSS 对 rpx 在 CSS 变量与 calc() 内的换算不可靠，故表宽写死并在此留档，
+   改任一列宽必须同步改 .board-table 的 width。
+   ============================================================ */
+
 .board-shell {
   margin: 0 12rpx;
   overflow: hidden;
@@ -106,174 +114,199 @@
   box-shadow: 0 2rpx 12rpx rgba(23, 24, 26, 0.04);
 }
 
+/* 双向滚动容器：横向看十列，纵向看多行；表头/首列的 sticky 都以它为参照 */
+.board-scroll {
+  height: calc(100vh - 280rpx);
+  min-height: 460rpx;
+}
+
+.board-table {
+  width: 1314rpx;
+}
+
 .board-head,
-.board-main {
+.board-row {
   display: flex;
   width: 100%;
 }
 
+/* 表头 sticky top：横向滚动时不跟随，纵向滚动时固定在容器顶部 */
 .board-head {
+  position: sticky;
+  top: 0;
+  z-index: 4;
   height: 78rpx;
   border-bottom: 1rpx solid var(--c-line);
   background: #fafbfc;
 }
 
-.board-body {
-  height: calc(100vh - 254rpx);
-  min-height: 480rpx;
-}
-
-.board-content,
-.board-row {
-  width: 100%;
-}
-
 .board-row {
   border-bottom: 1rpx solid var(--c-line);
   background: var(--c-card);
+  transition: background-color 0.15s ease;
 }
 
 .board-row:last-child {
   border-bottom: none;
 }
 
-.board-main {
-  min-height: 112rpx;
-  transition: background-color 0.15s ease;
-}
-
-.board-main--hover {
+.board-row--hover {
   background: #f7f8fa;
 }
 
-.board-main--expanded {
+.board-row--expanded {
   background: #fffdfb;
 }
 
-.board-cell--head {
+.cell {
   display: flex;
   align-items: center;
-  justify-content: center;
-  color: var(--c-text-2);
-  font-size: 20rpx;
-  font-weight: 500;
-  line-height: 1.3;
-  text-align: center;
-}
-
-.stock-cell {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
   flex-shrink: 0;
-  width: 190rpx;
-  padding: 0 14rpx 0 18rpx;
+  padding: 0 6rpx;
+  color: var(--c-text);
+  font-size: 24rpx;
+  font-variant-numeric: tabular-nums;
 }
 
-.board-head .stock-cell {
+/* 数值列右对齐：位数不同也能按小数点对齐比较 */
+.cell--price,
+.cell--change,
+.cell--yield,
+.cell--pe,
+.cell--week {
+  justify-content: flex-end;
+}
+
+.cell--head {
+  justify-content: center;
+  padding: 0 4rpx;
+  color: var(--c-text-2);
+  font-size: 19rpx;
+  font-weight: 500;
+  line-height: 1.25;
+  text-align: center;
+  font-variant-numeric: normal;
+}
+
+.cell--stock {
+  width: 220rpx;
+  padding: 0 8rpx 0 16rpx;
+  justify-content: space-between;
+}
+
+.cell--price {
+  width: 118rpx;
+}
+
+.cell--change {
+  width: 128rpx;
+}
+
+.cell--yield {
+  width: 150rpx;
+}
+
+.cell--pe {
+  width: 118rpx;
+}
+
+/* 周线五列：60周 / 120周 / 周上 / 周中 / 周下 */
+.cell--week {
+  width: 116rpx;
+}
+
+.cell--emphasis {
+  color: var(--c-primary);
+  font-weight: 600;
+}
+
+/* 首列 sticky left：横向滚动时名称/代码/行业始终可见。
+   必须带不透明背景，否则右侧列会从下面透出来。 */
+.board-row .cell--stock {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  background: var(--c-card);
+}
+
+.board-row--hover .cell--stock {
+  background: #f7f8fa;
+}
+
+.board-row--expanded .cell--stock {
+  background: #fffdfb;
+}
+
+/* 交叉单元格：同时 sticky top 与 left，压在所有单元格之上 */
+.board-head .cell--stock {
+  position: sticky;
+  left: 0;
+  z-index: 5;
   justify-content: flex-start;
-  padding-left: 20rpx;
+  padding-left: 16rpx;
+  background: #fafbfc;
 }
 
-.stock-cell__link {
+.stock-main {
   flex: 1;
   min-width: 0;
   padding: 12rpx 0;
 }
 
-.stock-cell__name {
-  max-width: 132rpx;
-  font-size: 27rpx;
+.stock-name {
+  max-width: 150rpx;
+  font-size: 26rpx;
   font-weight: 600;
 }
 
-.stock-cell__meta {
-  margin-top: 7rpx;
+.stock-meta {
+  max-width: 150rpx;
+  margin-top: 6rpx;
   color: var(--c-text-3);
-  font-size: 19rpx;
+  font-size: 18rpx;
   font-variant-numeric: tabular-nums;
 }
 
 /* 行业：东财 f127 原文（如「银行Ⅱ」），缺失显示 -- */
-.stock-cell__industry {
-  max-width: 132rpx;
-  margin-top: 4rpx;
+.stock-industry {
+  max-width: 150rpx;
+  margin-top: 3rpx;
   color: var(--c-text-3);
   font-size: 18rpx;
 }
 
-.stock-cell__status {
-  display: block;
-  margin-top: 5rpx;
-  color: #9a6212;
-  font-size: 18rpx;
-}
-
-.stock-cell__arrow {
+.stock-side {
+  display: flex;
+  align-items: center;
   flex-shrink: 0;
-  margin-left: 4rpx;
+  gap: 4rpx;
+}
+
+.stock-status {
+  color: #9a6212;
+  font-size: 17rpx;
+}
+
+.stock-arrow {
   color: var(--c-text-3);
-  font-size: 32rpx;
+  font-size: 30rpx;
   line-height: 1;
   transform: rotate(90deg);
   transition: transform 0.15s ease;
 }
 
-.stock-cell__arrow--open {
+.stock-arrow--open {
   transform: rotate(-90deg);
 }
 
-.metrics-row {
-  display: flex;
-  align-items: stretch;
-  flex: 1;
-  min-width: 0;
-}
-
-.metrics-row--head {
-  height: 78rpx;
-}
-
-.metrics-row--body {
-  min-height: 112rpx;
-}
-
-.metric-cell {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  padding: 0 6rpx;
-  color: var(--c-text);
-  font-size: 25rpx;
-  text-align: center;
-  font-variant-numeric: tabular-nums;
-}
-
-.metric-cell--price {
-  width: 125rpx;
-}
-
-.metric-cell--change {
-  width: 130rpx;
-}
-
-.metric-cell--yield {
-  width: 160rpx;
-}
-
-.metric-cell--pe {
-  width: 121rpx;
-}
-
-.metric-cell--emphasis {
-  color: var(--c-primary);
-  font-weight: 600;
-}
-
+/* 展开区 sticky left + 视口宽度：横向滚动时六档目标价始终完整可见 */
 .target-panel {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  width: 726rpx;
   padding: 20rpx;
-  border-top: 1rpx solid #f3e9e9;
+  border-bottom: 1rpx solid var(--c-line);
   background: #fffdfb;
 }
 

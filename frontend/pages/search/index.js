@@ -4,6 +4,7 @@
 const stockApi = require('../../services/stock');
 const watchlistApi = require('../../services/watchlist');
 const metricUtil = require('../../utils/metrics');
+const nav = require('../../utils/nav');
 
 Page({
   data: {
@@ -104,10 +105,6 @@ Page({
   },
 
   goDetail(e) {
-    const code = e.currentTarget.dataset.code;
-    if (!code) {
-      return;
-    }
-    wx.navigateTo({ url: '/pages/stock/index?code=' + code });
+    nav.goStockDetail(e.currentTarget.dataset.code, e.currentTarget.dataset.name);
   }
 });

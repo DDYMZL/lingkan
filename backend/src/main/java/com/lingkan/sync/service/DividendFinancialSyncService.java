@@ -65,7 +65,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * </ul>
  *
  * <p>互斥：同一时刻只允许一个同步批次在跑（{@code running} 原子标志），
- * 被拒绝的提交返回 {@code accepted=false}，不排队；入库操作本身幂等。
+ * 定时与手动提交被拒绝时返回 {@code accepted=false} 不排队，添加自选触发的即时同步
+ * 则有界重试（见 {@link ImmediateSyncRetry}）；入库操作本身幂等。
  */
 @Service
 public class DividendFinancialSyncService {
@@ -136,18 +137,16 @@ public class DividendFinancialSyncService {
     }
 
     /**
-     * 即时同步（添加自选等内部触发），受理失败只记日志不抛出，
+     * 即时同步（添加自选等内部触发）：受理失败只记日志不抛出，
      * 保证业务流程（添加自选）不被同步问题打断。
+     *
+     * <p>批次互斥拒绝时在异步线程里有界重试（见 {@link ImmediateSyncRetry}）：
+     * 分红/财报定时同步每日只跑一次，若连续添加自选时直接丢弃，后加的股票
+     * 股息率与 PE 会一直显示 {@code --} 到次日凌晨。
      */
     public void syncAsync(List<String> stockCodes, String triggerType) {
-        try {
-            SyncAcceptVo vo = submitForStocks(stockCodes, triggerType);
-            if (!vo.accepted()) {
-                log.info("即时同步被跳过（{}）：{}", triggerType, vo.message());
-            }
-        } catch (Exception ex) {
-            log.warn("即时同步提交失败（{}）: {}", triggerType, ex.getMessage());
-        }
+        ImmediateSyncRetry.run(dataSyncExecutor, log, "分红/财务", triggerType,
+                () -> submitForStocks(stockCodes, triggerType));
     }
 
     private SyncAcceptVo submit(List<String> codes, String triggerType) {

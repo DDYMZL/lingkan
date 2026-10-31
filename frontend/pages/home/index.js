@@ -1,13 +1,33 @@
 /**
  * 首页自选看板：HTTP 完整快照 + WebSocket 变化行更新。
  * 页面只负责展示状态，指标数值全部由后端计算引擎返回。
+ *
+ * v1.2（spec 010 §7.1）：十列横向滚动表格 + 首列固定。表头与表体共用 COLUMNS
+ * 一份列定义，保证横向滚动时列宽与顺序对齐；行情推送只重写变化行的 cells 数组。
  */
 const boardApi = require('../../services/board');
 const watchlistApi = require('../../services/watchlist');
 const format = require('../../utils/format');
+const nav = require('../../utils/nav');
 
 /** 目标价档位与后端 targetPrices 的键一致（spec 010 v1.2：六档 4.0%~6.5%）。 */
 const TARGET_YIELDS = ['4.0', '4.5', '5.0', '5.5', '6.0', '6.5'];
+
+/**
+ * 首列之外的九个数值列（顺序即展示顺序，spec 010 FR-10.1）。
+ * cls 对应 WXSS 里的列宽类，表头与表体同源，改列宽只改 WXSS 一处。
+ */
+const COLUMNS = [
+  { key: 'price', label: '现价', cls: 'cell--price' },
+  { key: 'change', label: '涨跌幅', cls: 'cell--change' },
+  { key: 'yield', label: '股息率TTM', cls: 'cell--yield' },
+  { key: 'pe', label: 'PE TTM', cls: 'cell--pe' },
+  { key: 'ma60w', label: '60周', cls: 'cell--week' },
+  { key: 'ma120w', label: '120周', cls: 'cell--week' },
+  { key: 'weekUpper', label: '周上', cls: 'cell--week' },
+  { key: 'weekMiddle', label: '周中', cls: 'cell--week' },
+  { key: 'weekLower', label: '周下', cls: 'cell--week' }
+];
 
 function hasNumber(value) {
   return value !== null && value !== undefined && value !== '' && isFinite(Number(value));
@@ -58,10 +78,61 @@ function buildTargets(item) {
   });
 }
 
+/**
+ * 九个数值列的单元格；顺序与 COLUMNS 一致。
+ * 周线五列（60周/120周/周上/周中/周下）是价位参考线，不做涨跌着色；
+ * 根数不足或数据异常时后端返回 null，这里统一渲染 --，不用 0 冒充（铁律 1）。
+ */
+function buildCells(item) {
+  const tone = format.priceTone(item.changePercent);
+  const values = {
+    price: { text: priceText(item.price), tone: tone },
+    change: { text: changeText(item.changePercent), tone: tone },
+    yield: { text: yieldText(item.dividendYieldTtm), emphasis: true },
+    pe: { text: peText(item), tone: item.peStatus === 'LOSS' ? 'down' : '' },
+    ma60w: { text: priceText(item.ma60w) },
+    ma120w: { text: priceText(item.ma120w) },
+    weekUpper: { text: priceText(item.weekUpper) },
+    weekMiddle: { text: priceText(item.weekMiddle) },
+    weekLower: { text: priceText(item.weekLower) }
+  };
+  return COLUMNS.map((column) => {
+    const cell = values[column.key] || { text: '--' };
+    return {
+      key: column.key,
+      cls: column.cls,
+      text: cell.text,
+      tone: cell.tone || '',
+      emphasis: !!cell.emphasis
+    };
+  });
+}
+
+function statusText(dataStatus) {
+  if (dataStatus === 'STALE') {
+    return '行情过期';
+  }
+  return dataStatus === 'SUSPENDED' ? '停牌' : '';
+}
+
+function buildRow(item) {
+  return {
+    code: item.stockCode,
+    name: item.stockName || item.stockCode,
+    exchange: item.exchange || '',
+    // 行业缺失显示 --，不由前端推断或补「其他」（spec 010 FR-10.12）
+    industryText: item.industry || '--',
+    cells: buildCells(item),
+    targets: buildTargets(item),
+    statusText: statusText(item.dataStatus)
+  };
+}
+
 Page({
   data: {
     loading: true,
     loadFailed: false,
+    columns: COLUMNS,
     rows: [],
     count: 0,
     expandedMap: {},
@@ -114,25 +185,7 @@ Page({
     return boardApi.getBoard()
       .then((res) => {
         const sourceRows = (res && res.rows) || [];
-        const rows = sourceRows.map((item) => ({
-          code: item.stockCode,
-          name: item.stockName || item.stockCode,
-          exchange: item.exchange || '',
-          // 行业缺失显示 --，不由前端推断或补「其他」（spec 010 FR-10.12）
-          industryText: item.industry || '--',
-          priceValue: hasNumber(item.price) ? Number(item.price) : null,
-          priceText: priceText(item.price),
-          changeText: changeText(item.changePercent),
-          tone: format.priceTone(item.changePercent),
-          yieldText: yieldText(item.dividendYieldTtm),
-          peText: peText(item),
-          peLoss: item.peStatus === 'LOSS',
-          targets: buildTargets(item),
-          quoteTime: item.quoteTime || '',
-          statusText: item.dataStatus === 'STALE'
-            ? '行情过期'
-            : (item.dataStatus === 'SUSPENDED' ? '停牌' : '')
-        }));
+        const rows = sourceRows.map(buildRow);
         const indexes = {};
         rows.forEach((row, index) => {
           indexes[row.code] = index;
@@ -196,7 +249,10 @@ Page({
     }
   },
 
-  /** 只写变化行的路径，不用整份 rows 替换触发全表渲染。 */
+  /**
+   * 只写变化行的路径，不用整份 rows 替换触发全表渲染。
+   * 周线五列随推送下发：本周未收盘周线的收盘价用实时价覆盖（spec 007 Q7-8）。
+   */
   applyQuoteUpdates(updates) {
     const patch = {};
     let latestTime = this.data.quoteTimeRaw;
@@ -207,18 +263,10 @@ Page({
       }
       const row = this.data.rows[index];
       const prefix = 'rows[' + index + ']';
-      patch[prefix + '.priceValue'] = hasNumber(update.price) ? Number(update.price) : null;
-      patch[prefix + '.priceText'] = priceText(update.price);
-      patch[prefix + '.changeText'] = changeText(update.changePercent);
-      patch[prefix + '.tone'] = format.priceTone(update.changePercent);
-      patch[prefix + '.yieldText'] = yieldText(update.dividendYieldTtm);
-      patch[prefix + '.peText'] = peText(update);
-      patch[prefix + '.peLoss'] = update.peStatus === 'LOSS';
-      patch[prefix + '.quoteTime'] = update.quoteTime || '';
-      patch[prefix + '.statusText'] = update.dataStatus === 'STALE'
-        ? '行情过期'
-        : (update.dataStatus === 'SUSPENDED' ? '停牌' : '');
+      patch[prefix + '.cells'] = buildCells(update);
+      patch[prefix + '.statusText'] = statusText(update.dataStatus);
 
+      // 目标价不随行情推送（只随分红变化），这里只重算「是否已达标」
       row.targets.forEach((target, targetIndex) => {
         const reached = targetReached(update.price, target.value);
         if (reached !== target.reached) {
@@ -274,10 +322,7 @@ Page({
   },
 
   goDetail(e) {
-    const code = e.currentTarget.dataset.code;
-    if (code) {
-      wx.navigateTo({ url: '/pages/stock/index?code=' + code });
-    }
+    nav.goStockDetail(e.currentTarget.dataset.code, e.currentTarget.dataset.name);
   },
 
   goSearch() {

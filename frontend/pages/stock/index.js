@@ -46,7 +46,12 @@ Page({
       wx.showToast({ title: '缺少股票代码', icon: 'none' });
       return;
     }
+    // 名称随路由同步下发：onLoad 就定标题，避免异步回调与页面出栈抢导航栏。
+    const name = options.name ? decodeURIComponent(options.name) : '';
     this.setData({ code: code });
+    if (name) {
+      wx.setNavigationBarTitle({ title: name });
+    }
     this.loadAll();
   },
 
@@ -65,6 +70,15 @@ Page({
       title: basic ? basic.name + ' ' + basic.code + ' · 玲看股息' : '玲看股息',
       path: '/pages/stock/index?code=' + this.data.code
     };
+  },
+
+  /**
+   * 页面出栈标记。
+   * loadAll 是异步的：用户秒退时回调会在页面销毁后才回来，
+   * 此时 wx.setNavigationBarTitle 会把个股名写到栈顶的其它页面（实测会污染首页标题）。
+   */
+  onUnload() {
+    this.detached = true;
   },
 
   loadAll(isPull) {
@@ -107,7 +121,7 @@ Page({
 
         const inWatchlist = ((watchPage.list || []) || []).some((s) => s.stockCode === code);
 
-        if (stock) {
+        if (stock && !this.detached) {
           wx.setNavigationBarTitle({ title: stock.stockName });
         }
 

@@ -23,45 +23,48 @@
     <text>看板加载中…</text>
   </view>
 
+  <!-- 十列横滚表格：表头与表体同处一个滚动容器，首列 sticky left、表头 sticky top（design §7.1） -->
   <view wx:elif="{{rows.length}}" class="board-shell">
-    <view class="board-head">
-      <view class="stock-cell board-cell--head">股票 / 代码</view>
-      <view class="metrics-row metrics-row--head">
-        <view class="metric-cell metric-cell--price board-cell--head">现价</view>
-        <view class="metric-cell metric-cell--change board-cell--head">涨跌幅</view>
-        <view class="metric-cell metric-cell--yield board-cell--head">股息率 TTM</view>
-        <view class="metric-cell metric-cell--pe board-cell--head">PE TTM</view>
-      </view>
-    </view>
-
-    <scroll-view class="board-body" scroll-y enhanced show-scrollbar="{{false}}">
-      <view class="board-content">
-        <view wx:for="{{rows}}" wx:for-item="row" wx:key="code" class="board-row">
+    <scroll-view class="board-scroll" scroll-x scroll-y enhanced show-scrollbar="{{false}}">
+      <view class="board-table">
+        <view class="board-head">
+          <view class="cell cell--stock cell--head">股票 / 代码</view>
           <view
-            class="board-main {{expandedMap[row.code] ? 'board-main--expanded' : ''}}"
+            wx:for="{{columns}}"
+            wx:for-item="col"
+            wx:key="key"
+            class="cell cell--head {{col.cls}}"
+          >{{col.label}}</view>
+        </view>
+
+        <block wx:for="{{rows}}" wx:for-item="row" wx:key="code">
+          <view
+            class="board-row {{expandedMap[row.code] ? 'board-row--expanded' : ''}}"
             data-code="{{row.code}}"
             bindtap="toggleTargets"
-            hover-class="board-main--hover"
+            hover-class="board-row--hover"
             hover-stay-time="50"
           >
-            <view class="stock-cell stock-cell--body">
-              <view class="stock-cell__link" data-code="{{row.code}}" catchtap="goDetail">
-                <view class="stock-cell__name ellipsis">{{row.name}}</view>
-                <view class="stock-cell__meta">
+            <view class="cell cell--stock">
+              <view class="stock-main" data-code="{{row.code}}" data-name="{{row.name}}" catchtap="goDetail">
+                <view class="stock-name ellipsis">{{row.name}}</view>
+                <view class="stock-meta ellipsis">
                   <text>{{row.code}}</text>
                   <text wx:if="{{row.exchange}}"> · {{row.exchange}}</text>
                 </view>
-                <view class="stock-cell__industry ellipsis">{{row.industryText}}</view>
-                <text wx:if="{{row.statusText}}" class="stock-cell__status">{{row.statusText}}</text>
+                <view class="stock-industry ellipsis">{{row.industryText}}</view>
               </view>
-              <text class="stock-cell__arrow {{expandedMap[row.code] ? 'stock-cell__arrow--open' : ''}}">›</text>
+              <view class="stock-side">
+                <text wx:if="{{row.statusText}}" class="stock-status">{{row.statusText}}</text>
+                <text class="stock-arrow {{expandedMap[row.code] ? 'stock-arrow--open' : ''}}">›</text>
+              </view>
             </view>
-            <view class="metrics-row metrics-row--body">
-              <view class="metric-cell metric-cell--price t-num {{row.tone}}">{{row.priceText}}</view>
-              <view class="metric-cell metric-cell--change t-num {{row.tone}}">{{row.changeText}}</view>
-              <view class="metric-cell metric-cell--yield metric-cell--emphasis t-num">{{row.yieldText}}</view>
-              <view class="metric-cell metric-cell--pe t-num {{row.peLoss ? 'down' : ''}}">{{row.peText}}</view>
-            </view>
+            <view
+              wx:for="{{row.cells}}"
+              wx:for-item="cell"
+              wx:key="key"
+              class="cell t-num {{cell.cls}} {{cell.tone}} {{cell.emphasis ? 'cell--emphasis' : ''}}"
+            >{{cell.text}}</view>
           </view>
 
           <view wx:if="{{expandedMap[row.code]}}" class="target-panel">
@@ -82,10 +85,10 @@
               </view>
             </view>
           </view>
-        </view>
+        </block>
       </view>
     </scroll-view>
-    <view class="board-foot">点击行展开六档目标价 · 红色底纹表示现价已达目标 · -- 表示数据缺失</view>
+    <view class="board-foot">左右滑动查看 60周 / 120周 / 周上 / 周中 / 周下 · 点击行展开六档目标价 · 红色底纹表示现价已达目标 · -- 表示数据缺失</view>
   </view>
 
   <view wx:elif="{{loadFailed}}" class="card home-state load-failed">
@@ -98,7 +101,7 @@
     <empty-state
       icon="+"
       text="还没有自选股"
-      hint="搜索并添加 A 股后，可在这里查看实时股息率、PE 与六档目标价"
+      hint="搜索并添加 A 股后，可在这里查看实时股息率、PE、周线价位与六档目标价"
       action-text="添加股票"
       bind:action="goSearch"
     />

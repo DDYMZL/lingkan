@@ -4,6 +4,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.time.DayOfWeek;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneId;
@@ -35,13 +36,24 @@ public class TradingSessionChecker {
     }
 
     public boolean isTradingTime(LocalDateTime dateTime) {
-        if (dateTime == null || dateTime.getDayOfWeek() == DayOfWeek.SATURDAY
-                || dateTime.getDayOfWeek() == DayOfWeek.SUNDAY) {
+        if (dateTime == null || !isTradingDay(dateTime.toLocalDate())) {
             return false;
         }
         LocalTime time = dateTime.toLocalTime();
         boolean morning = !time.isBefore(morningOpen) && !time.isAfter(morningClose);
         boolean afternoon = !time.isBefore(afternoonOpen) && !time.isAfter(afternoonClose);
         return morning || afternoon;
+    }
+
+    /**
+     * 是否交易日（工作日口径，法定节假日暂未单独维护）。
+     *
+     * <p>供「非盘中也要跑」的同步任务使用，例如周线同步：已收盘周线在收盘后仍会补正，
+     * 交易日全天都需要刷新，而不只是连续竞价时段。
+     */
+    public boolean isTradingDay(LocalDate date) {
+        return date != null
+                && date.getDayOfWeek() != DayOfWeek.SATURDAY
+                && date.getDayOfWeek() != DayOfWeek.SUNDAY;
     }
 }

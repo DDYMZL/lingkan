@@ -59,6 +59,7 @@
         hover-class="stock--hover"
         hover-stay-time="60"
         data-code="{{item.code}}"
+        data-name="{{item.name}}"
         bindtap="goDetail"
       >
         <view class="stock__main">

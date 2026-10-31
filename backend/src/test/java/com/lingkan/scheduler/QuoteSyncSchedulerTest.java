@@ -17,6 +17,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
@@ -119,6 +120,10 @@ class QuoteSyncSchedulerTest {
 
     private static BoardRowDto row(String code, BigDecimal price) {
         return new BoardRowDto(code, code, "SH", null, price, null, null, null, null,
-                null, "N_A", null, null, null, null, "NORMAL");
+                null, "N_A",
+                new BigDecimal("10.50"), new BigDecimal("9.80"),
+                new BigDecimal("12.33"), new BigDecimal("10.50"), new BigDecimal("8.67"),
+                "NORMAL", LocalDate.of(2026, 10, 30),
+                null, null, null, null, "NORMAL");
     }
 }

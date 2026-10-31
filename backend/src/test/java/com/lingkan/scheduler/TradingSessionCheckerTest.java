@@ -3,6 +3,7 @@ package com.lingkan.scheduler;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -34,5 +35,16 @@ class TradingSessionCheckerTest {
     @DisplayName("周末不轮询")
     void excludesWeekend() {
         assertFalse(checker.isTradingTime(LocalDateTime.of(2026, 10, 31, 10, 0)));
+    }
+
+    @Test
+    @DisplayName("交易日判定只看星期，不看盘中时段（周线同步用）")
+    void tradingDayIgnoresSessionHours() {
+        // 2026-10-30 周五、2026-10-31 周六、2026-11-01 周日、2026-11-02 周一
+        assertTrue(checker.isTradingDay(LocalDate.of(2026, 10, 30)));
+        assertFalse(checker.isTradingDay(LocalDate.of(2026, 10, 31)));
+        assertFalse(checker.isTradingDay(LocalDate.of(2026, 11, 1)));
+        assertTrue(checker.isTradingDay(LocalDate.of(2026, 11, 2)));
+        assertFalse(checker.isTradingDay(null));
     }
 }

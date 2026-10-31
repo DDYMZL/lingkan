@@ -7,6 +7,7 @@ import com.lingkan.stock.entity.Stock;
 import com.lingkan.stock.mapper.StockMapper;
 import com.lingkan.stock.service.StockService;
 import com.lingkan.sync.service.DividendFinancialSyncService;
+import com.lingkan.sync.service.WeeklyKlineSyncService;
 import com.lingkan.watchlist.dto.BoardResponse;
 import com.lingkan.watchlist.entity.UserWatchlist;
 import com.lingkan.watchlist.mapper.UserWatchlistMapper;
@@ -27,9 +28,10 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
-/** 首页看板编排测试：自选顺序、空状态与行情时间。 */
+/** 自选服务测试：看板编排（顺序、空状态、行情时间）与新增自选的同步触发。 */
 @ExtendWith(MockitoExtension.class)
 class WatchlistServiceTest {
 
@@ -43,6 +45,8 @@ class WatchlistServiceTest {
     private MetricValueService metricValueService;
     @Mock
     private DividendFinancialSyncService dividendFinancialSyncService;
+    @Mock
+    private WeeklyKlineSyncService weeklyKlineSyncService;
     @Mock
     private StockIndicatorService stockIndicatorService;
     @InjectMocks
@@ -87,6 +91,32 @@ class WatchlistServiceTest {
         assertEquals(latest, response.quoteTime());
     }
 
+    @Test
+    @DisplayName("新增自选后立即触发分红财报与周线两条异步同步")
+    void addTriggersDividendAndWeeklySync() {
+        when(stockService.requireStock("600519")).thenReturn(stock(7L, "600519"));
+        when(watchlistMapper.selectOne(any())).thenReturn(null);
+        when(watchlistMapper.selectCount(any())).thenReturn(0L);
+
+        service.add("local-user", "600519", "probe");
+
+        verify(watchlistMapper).insert(any(UserWatchlist.class));
+        verify(dividendFinancialSyncService).syncAsync(List.of("600519"), "WATCHLIST_ADD");
+        verify(weeklyKlineSyncService).syncAsync(List.of("600519"), "WATCHLIST_ADD");
+    }
+
+    @Test
+    @DisplayName("自选已存在时不重复触发同步")
+    void addExistingSkipsSync() {
+        when(stockService.requireStock("600519")).thenReturn(stock(7L, "600519"));
+        when(watchlistMapper.selectOne(any())).thenReturn(watchlistItem(7L));
+
+        service.add("local-user", "600519", null);
+
+        verify(watchlistMapper, never()).insert(any(UserWatchlist.class));
+        verifyNoInteractions(dividendFinancialSyncService, weeklyKlineSyncService);
+    }
+
     private static UserWatchlist watchlistItem(Long stockId) {
         UserWatchlist item = new UserWatchlist();
         item.setStockId(stockId);
@@ -100,8 +130,11 @@ class WatchlistServiceTest {
         return stock;
     }
 
+    /** 周线缺失行：五个周线价格为 null，状态 MISSING，前端渲染 --（禁止用 0 冒充）。 */
     private static BoardRowDto row(String code, LocalDateTime quoteTime) {
         return new BoardRowDto(code, code, "SH", null, null, null, null, null, null,
-                null, "N_A", null, quoteTime, null, null, "STALE");
+                null, "N_A",
+                null, null, null, null, null, "MISSING", null,
+                null, quoteTime, null, null, "STALE");
     }
 }

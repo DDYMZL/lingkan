@@ -12,6 +12,7 @@ import com.lingkan.stock.entity.Stock;
 import com.lingkan.stock.mapper.StockMapper;
 import com.lingkan.stock.service.StockService;
 import com.lingkan.sync.service.DividendFinancialSyncService;
+import com.lingkan.sync.service.WeeklyKlineSyncService;
 import com.lingkan.watchlist.dto.BoardResponse;
 import com.lingkan.watchlist.entity.UserWatchlist;
 import com.lingkan.watchlist.mapper.UserWatchlistMapper;
@@ -35,17 +36,20 @@ public class WatchlistService {
     private final StockService stockService;
     private final MetricValueService metricValueService;
     private final DividendFinancialSyncService dividendFinancialSyncService;
+    private final WeeklyKlineSyncService weeklyKlineSyncService;
     private final StockIndicatorService stockIndicatorService;
 
     public WatchlistService(UserWatchlistMapper watchlistMapper, StockMapper stockMapper,
                             StockService stockService, MetricValueService metricValueService,
                             DividendFinancialSyncService dividendFinancialSyncService,
+                            WeeklyKlineSyncService weeklyKlineSyncService,
                             StockIndicatorService stockIndicatorService) {
         this.watchlistMapper = watchlistMapper;
         this.stockMapper = stockMapper;
         this.stockService = stockService;
         this.metricValueService = metricValueService;
         this.dividendFinancialSyncService = dividendFinancialSyncService;
+        this.weeklyKlineSyncService = weeklyKlineSyncService;
         this.stockIndicatorService = stockIndicatorService;
     }
 
@@ -137,8 +141,9 @@ public class WatchlistService {
         entity.setRemark(remark);
         entity.setCreatedAt(LocalDateTime.now());
         watchlistMapper.insert(entity);
-        // 添加自选成功后异步即时同步分红/财报（spec 010 §4.3）；失败不影响添加结果
+        // 添加自选成功后异步即时同步分红/财报（spec 010 §4.3）与周线（§4.4）；失败不影响添加结果
         dividendFinancialSyncService.syncAsync(List.of(stockCode), "WATCHLIST_ADD");
+        weeklyKlineSyncService.syncAsync(List.of(stockCode), "WATCHLIST_ADD");
     }
 
     @Transactional

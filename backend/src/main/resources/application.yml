@@ -125,11 +125,28 @@ lingkan:
     timezone: Asia/Shanghai
     # 相邻两次数据源请求的最小间隔（毫秒）
     request-interval-ms: 500
-  # 首页看板（目标价格档位等）
+  # 首页看板（目标价格档位 + 周线五指标）
   board:
     # 目标股息率档位（%），对应看板展开区的六档目标价列
     # v1.2（2026-10-31 用户裁决）：移除 7.0/7.5/8.0，与 TargetPriceCalculator.DEFAULT_TARGET_YIELDS 保持一致
     target-yields: 4.0,4.5,5.0,5.5,6.0,6.5
+    # 周线五指标与周线同步（v1.2）。口径由用户 2026-10-31 确认，见 spec 007 Q7-2/Q7-3/Q7-4/Q7-6/Q7-7/Q7-8：
+    #   60周/120周 = MA(前复权周线收盘价, 60/120)；周上/周中/周下 = 周线布林轨 N=20、K=2（样本标准差）
+    #   周线取东财 klt=102 fqt=1（前复权），本周未收盘周线的收盘价用实时价覆盖（同 ISO 周才覆盖）
+    weekly:
+      # 关闭后定时同步不执行，手动接口与添加自选触发仍可用；看板周线列按库内已有数据渲染
+      enabled: true
+      ma-short: 60
+      ma-long: 120
+      boll-n: 20
+      boll-k: 2
+      # 每次同步与计算读取的周线根数上限，必须 >= ma-long 且留余量；整窗口覆盖 upsert（前复权基准会漂移）
+      bars-limit: 130
+      # 交易日每 60 分钟同步一次（已收盘周线每日至多变化一次），首次延迟 2 分钟避开启动期
+      refresh-interval-ms: 3600000
+      initial-delay-ms: 120000
+      # 相邻两次周 K 请求的最小间隔（毫秒），与其他东财适配器一致
+      request-interval-ms: 500
   datasource:
     # 单用户配置维度，未登录时使用该用户标识（不做注册登录体系）
     default-user-id: local-user
