@@ -84,4 +84,4 @@
 - [x] T6C-10 前端横向滚动表格：首列 sticky、表头 sticky、十列对齐、周线列渲染与 WS 行级更新、缺失 `--`
 - [x] T6C-11 验证：后端全量测试通过；重启后 V6 生效；手动触发周线同步并 curl 核对至少一只股票的 MA60 与东财原始周线手算一致；开发者工具 automator 验证布局与展开
 - [x] T6C-12 文档同步：changelog、`docs/database/schema.md`、`source-research.md`（周 K 实测 + 前复权负价坑）、`frontend/README.md`、`.code-docs`
-- [ ] T6C-13 两次 commit + push origin/main，报告 hash 与推送结果
+- [x] T6C-13 两次 commit + push origin/main，报告 hash 与推送结果（74e0352 代码 / 6719371 文档，均已推送）
